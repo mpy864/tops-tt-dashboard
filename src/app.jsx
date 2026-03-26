@@ -1,8 +1,8 @@
-import PlayerFormDashboard from './components/PlayerFormDashboard';
+import DynamicOKRDashboard from './components/DynamicOKRDashboard';
+   import './index.css';
 
-function App() {
-  return <PlayerFormDashboard />;
-}
+   function App() {
+     return <DynamicOKRDashboard />;
+   }
 
-export default App;
-
+   export default App;
