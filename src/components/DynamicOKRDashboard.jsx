@@ -5,10 +5,9 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import {
-  TrendingUp, ChevronDown, ChevronUp,
-  CheckCircle2, XCircle, Info, Zap, Clock,
-  BarChart2, Star, Activity, Search, Target,
-  Users, Layers, ArrowRight, Shield, Trophy
+  TrendingUp, TrendingDown, Minus,
+  ChevronDown, ChevronUp,
+  Zap, Star, Activity, Search, ArrowRight
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -45,21 +44,29 @@ function fmtMonthYear(date) {
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
-// Strip everything after the 4-digit year (e.g. "WTT Champions Chongqing 2026 Presented by AITO" → "WTT Champions Chongqing 2026")
 function cleanCompetitionName(name) {
-  if (!name) return 'Unknown';
+  if (!name) return 'Unknown competition';
   const match = name.match(/^(.*?\d{4})/);
   return match ? match[1].trim() : name;
 }
 
-// Filter out unplayed sets (0-0) and return player-perspective scores
+function cleanRound(round) {
+  if (!round || round === 'N/A') return null;
+  const rofMatch = round.match(/Round of \d+/i);
+  if (rofMatch) return rofMatch[0];
+  const common = ['Final', 'Semi-Final', 'Quarter-Final', 'Group Stage', 'Qualifying'];
+  for (const r of common) {
+    if (round.toLowerCase().includes(r.toLowerCase())) return r;
+  }
+  const parts = round.split(' - ');
+  return parts.length > 1 ? parts[parts.length - 2] || null : null;
+}
+
 function parseDisplayGames(str, isComp1) {
   if (!str || str === 'N/A') return [];
   return str.split(',').map(s => s.trim()).filter(g => {
     const [a, b] = g.split('-').map(Number);
-    if (isNaN(a) || isNaN(b)) return false;
-    if (a === 0 && b === 0) return false; // unplayed set
-    return true;
+    return !isNaN(a) && !isNaN(b) && !(a === 0 && b === 0);
   }).map(g => {
     const [a, b] = g.split('-').map(Number);
     const pScore = isComp1 ? a : b;
@@ -68,15 +75,16 @@ function parseDisplayGames(str, isComp1) {
   });
 }
 
-// Match score pill: e.g. "3-0", "0-3", "3-2" from player perspective
-function getMatchScoreStr(gamesWon, gamesLost) {
-  return `${gamesWon}-${gamesLost}`;
+function getInitials(name) {
+  if (!name || name === 'Unknown') return '?';
+  const parts = name.trim().split(' ');
+  return parts.length >= 2
+    ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    : name.slice(0, 2).toUpperCase();
 }
 
-// ─── Chart builder — always monthly for smooth hover, labels by window ─────────
-
-const Q_START_MONTHS = [1, 4, 7, 10]; // Jan Apr Jul Oct
-const Q_MONTH_LABEL = { 1: 'Jan', 4: 'Apr', 7: 'Jul', 10: 'Oct' };
+const Q_START = new Set([1, 4, 7, 10]);
+const Q_LABEL = { 1: 'Jan', 4: 'Apr', 7: 'Jul', 10: 'Oct' };
 
 function buildRankChartData(rankingHistory, windowMonths) {
   const cutoff = new Date(Date.now() - windowMonths * 30 * 24 * 60 * 60 * 1000);
@@ -84,41 +92,36 @@ function buildRankChartData(rankingHistory, windowMonths) {
     .filter(r => new Date(r.ranking_date) >= cutoff)
     .sort((a, b) => new Date(a.ranking_date) - new Date(b.ranking_date));
   if (!sorted.length) return [];
-
-  // Always monthly granularity → smooth continuous line
   const byMonth = new Map();
   for (const r of sorted) {
     const d = new Date(r.ranking_date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    byMonth.set(key, r);
+    byMonth.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, r);
   }
+  return [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([key, r]) => {
+    const [yr, mo] = key.split('-').map(Number);
+    let label = '';
+    if (windowMonths === 6) {
+      label = `${new Date(yr, mo - 1).toLocaleDateString('en-US', { month: 'short' })} '${String(yr).slice(2)}`;
+    } else {
+      label = Q_START.has(mo) ? `${Q_LABEL[mo]} '${String(yr).slice(2)}` : '';
+    }
+    return { label, rank: r.rank, points: r.points };
+  });
+}
 
-  return [...byMonth.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, r]) => {
-      const [yr, mo] = key.split('-').map(Number);
-      let label = '';
-      if (windowMonths === 6) {
-        // Monthly labels for 6M
-        label = `${new Date(yr, mo - 1, 1).toLocaleDateString('en-US', { month: 'short' })} '${String(yr).slice(2)}`;
-      } else {
-        // Quarter-start month labels for 12M/18M (Jan/Apr/Jul/Oct), empty for others
-        label = Q_START_MONTHS.includes(mo)
-          ? `${Q_MONTH_LABEL[mo]} '${String(yr).slice(2)}`
-          : '';
-      }
-      return { label, rank: r.rank, points: r.points };
-    });
+function CustomXTick({ x, y, payload }) {
+  if (!payload?.value) return null;
+  return <text x={x} y={y + 12} textAnchor="middle" fontSize={10} fill="#94a3b8">{payload.value}</text>;
 }
 
 // ─── Window computation ────────────────────────────────────────────────────────
 
 function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurrentRank) {
-  const cutoff = new Date(Date.now() - windowMonths * 30 * 24 * 60 * 60 * 1000);
+  const cutoff   = new Date(Date.now() - windowMonths * 30 * 24 * 60 * 60 * 1000);
   const filtered = matchLedger.filter(m => m.rawDate >= cutoff);
-  const wins   = filtered.filter(m => m.result === 'W');
-  const losses = filtered.filter(m => m.result === 'L');
-  const total  = filtered.length;
+  const wins     = filtered.filter(m => m.result === 'W');
+  const losses   = filtered.filter(m => m.result === 'L');
+  const total    = filtered.length;
 
   const winRate     = total > 0 ? (wins.length / total) * 100 : 0;
   const upsetYield  = wins.length > 0 ? (wins.filter(m => m.isUpset).length / wins.length) * 100 : 0;
@@ -131,26 +134,26 @@ function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurr
   const rankAtStart = rankingHistory.find(r => new Date(r.ranking_date) <= cutoff)?.rank;
   const rankChange  = rankAtStart ? rankAtStart - playerCurrentRank : 0;
 
+  const beaten = wins.filter(m => m.opponentRank < 999).map(m => m.opponentRank);
+  const avgOppRankBeaten = beaten.length > 0
+    ? Math.round(beaten.reduce((s, v) => s + v, 0) / beaten.length) : null;
+
   const straightSetsWins   = wins.filter(m => m.isStraightWin).length;
   const straightSetsLosses = losses.filter(m => m.isStraightLoss).length;
   const comebackWins       = wins.filter(m => m.isComeback).length;
 
-  const beaten = wins.filter(m => m.opponentRank < 999).map(m => m.opponentRank);
-  const avgOpponentRankBeaten = beaten.length > 0
-    ? Math.round(beaten.reduce((s, v) => s + v, 0) / beaten.length) : null;
-
-  const rankTierBuckets = [
-    { label: '0–20',   min: 0,   max: 20   },
-    { label: '21–50',  min: 21,  max: 50   },
-    { label: '51–100', min: 51,  max: 100  },
-    { label: '100+',   min: 101, max: 9999 },
+  const rankBuckets = [
+    { label: 'Top 20',      min: 0,   max: 20   },
+    { label: 'Rank 21–50',  min: 21,  max: 50   },
+    { label: 'Rank 51–100', min: 51,  max: 100  },
+    { label: 'Rank 100+',   min: 101, max: 9999 },
   ].map(b => {
     const bm = filtered.filter(m => m.opponentRank >= b.min && m.opponentRank <= b.max);
     const bw = bm.filter(m => m.result === 'W').length;
     const bl = bm.filter(m => m.result === 'L').length;
     const bt = bw + bl;
     return { ...b, wins: bw, losses: bl, total: bt,
-      winRate: bt > 0 ? parseFloat(((bw / bt) * 100).toFixed(1)) : 0, matches: bm };
+      winPct: bt > 0 ? (bw / bt) * 100 : 0, matches: bm };
   });
 
   const tierMap = {};
@@ -160,11 +163,12 @@ function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurr
     if (m.result === 'W') tierMap[t].wins++; else tierMap[t].losses++;
     tierMap[t].matches.push(m);
   }
-  const tierPerfArr = Object.entries(tierMap).map(([tier, t]) => ({
-    tier, wins: t.wins, losses: t.losses, total: t.wins + t.losses,
-    winRate: (t.wins + t.losses) > 0 ? ((t.wins / (t.wins + t.losses)) * 100).toFixed(1) : '0.0',
-    matches: t.matches,
-  })).sort((a, b) => a.tier === 'Unknown' ? 1 : b.tier === 'Unknown' ? -1 : parseInt(a.tier) - parseInt(b.tier));
+  const tierBuckets = Object.entries(tierMap).map(([tier, t]) => {
+    const bt = t.wins + t.losses;
+    return { label: tier === 'Unknown' ? 'Unclassified' : `Grade ${tier}`, tier,
+      wins: t.wins, losses: t.losses, total: bt,
+      winPct: bt > 0 ? (t.wins / bt) * 100 : 0, matches: t.matches };
+  }).sort((a, b) => a.tier === 'Unknown' ? 1 : b.tier === 'Unknown' ? -1 : parseInt(a.tier) - parseInt(b.tier));
 
   const cmap = {};
   for (const m of filtered) {
@@ -172,145 +176,246 @@ function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurr
     if (m.result === 'W') cmap[m.opponent].wins++; else cmap[m.opponent].losses++;
     cmap[m.opponent].matches.push(m);
   }
-  const frequentCompetitors = Object.values(cmap)
-    .map(c => ({ ...c, total: c.wins + c.losses, winRate: (c.wins + c.losses) > 0 ? ((c.wins / (c.wins + c.losses)) * 100).toFixed(1) : '0.0' }))
+  const topCompetitors = Object.values(cmap)
+    .map(c => { const bt = c.wins + c.losses; return { ...c, total: bt, winPct: bt > 0 ? (c.wins / bt) * 100 : 0 }; })
     .sort((a, b) => b.total - a.total).slice(0, 5);
 
   const nmap = {};
   for (const m of filtered) {
-    const cc = m.opponentCountry;
-    if (!cc) continue;
+    const cc = m.opponentCountry; if (!cc) continue;
     if (!nmap[cc]) nmap[cc] = { country: cc, wins: 0, losses: 0, matches: [] };
     if (m.result === 'W') nmap[cc].wins++; else nmap[cc].losses++;
     nmap[cc].matches.push(m);
   }
   const topNations = Object.values(nmap)
-    .map(n => ({ ...n, total: n.wins + n.losses, winRate: (n.wins + n.losses) > 0 ? ((n.wins / (n.wins + n.losses)) * 100).toFixed(1) : '0.0' }))
+    .map(n => { const bt = n.wins + n.losses; return { ...n, total: bt, winPct: bt > 0 ? (n.wins / bt) * 100 : 0 }; })
     .sort((a, b) => b.total - a.total).slice(0, 8);
-
-  const dnaGroups = {
-    straightWins:   wins.filter(m => m.isStraightWin),
-    straightLosses: losses.filter(m => m.isStraightLoss),
-    comebacks:      wins.filter(m => m.isComeback),
-    clutch:         wins.filter(m => m.isClutch),
-  };
 
   return {
     winRate, upsetYield, clutchIndex, avgPtDiff, rankChange,
     matchCount: total, wins: wins.length, losses: losses.length,
-    straightSetsWins, straightSetsLosses, comebackWins,
-    avgOpponentRankBeaten, rankTierBuckets, tierPerfArr,
-    frequentCompetitors, topNations, dnaGroups,
+    straightSetsWins, straightSetsLosses, comebackWins, avgOppRankBeaten,
+    rankBuckets, tierBuckets, topCompetitors, topNations,
+    dnaGroups: {
+      straightWins:   wins.filter(m => m.isStraightWin),
+      straightLosses: losses.filter(m => m.isStraightLoss),
+      comebacks:      wins.filter(m => m.isComeback),
+      clutch:         wins.filter(m => m.isClutch),
+    },
     allMatches: filtered,
   };
 }
 
-// ─── Match Table grouped by competition ───────────────────────────────────────
+// ─── Verdict ──────────────────────────────────────────────────────────────────
 
-function MatchTable({ matches }) {
-  if (!matches?.length)
-    return <p className="text-xs text-slate-400 px-4 py-3">No matches in this window.</p>;
-
-  // Group by cleaned competition name
-  const grouped = {};
-  for (const m of matches) {
-    const comp = cleanCompetitionName(m.tournament);
-    if (!grouped[comp]) grouped[comp] = [];
-    grouped[comp].push(m);
-  }
-
-  return (
-    <div>
-      {Object.entries(grouped).map(([comp, compMatches]) => (
-        <div key={comp}>
-          {/* Competition header */}
-          <div className="px-4 py-1.5 bg-slate-100 border-y border-slate-200">
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{comp}</p>
-          </div>
-          {/* Column headers */}
-          <div className="grid grid-cols-12 gap-2 px-4 py-1.5 bg-slate-50 text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            <div className="col-span-2">Month/Year</div>
-            <div className="col-span-4">Opponent</div>
-            <div className="col-span-2 text-center">Rank</div>
-            <div className="col-span-2 text-center">Nation</div>
-            <div className="col-span-2 text-right">Result</div>
-          </div>
-          {compMatches.map((m, i) => (
-            <MatchRow key={i} match={m} />
-          ))}
-        </div>
-      ))}
-    </div>
-  );
+function computeVerdict(w) {
+  if (w.matchCount < 5) return { text: 'Insufficient data', tone: 'gray' };
+  const up = w.rankChange > 0, strong = w.winRate >= 50;
+  if (up && strong)   return { text: `Ascending — up ${w.rankChange} places`,                    tone: 'green' };
+  if (!up && !strong) return { text: 'Declining — rank and win rate both falling',                tone: 'red'   };
+  if (up && !strong)  return { text: `Quietly rising — rank up ${w.rankChange} on quality wins`, tone: 'blue'  };
+  return                     { text: 'Plateau — results stable, no ranking movement',            tone: 'amber' };
 }
+
+const TONE = {
+  green: { text: 'text-emerald-700', bg: 'bg-emerald-50',  dot: '#10b981' },
+  red:   { text: 'text-red-600',     bg: 'bg-red-50',      dot: '#ef4444' },
+  blue:  { text: 'text-sky-700',     bg: 'bg-sky-50',      dot: '#3b82f6' },
+  amber: { text: 'text-amber-700',   bg: 'bg-amber-50',    dot: '#f59e0b' },
+  gray:  { text: 'text-slate-500',   bg: 'bg-slate-100',   dot: '#94a3b8' },
+};
+
+// ─── MatchRow — HTML table, 28% / 40% / 32%, table-layout: fixed ─────────────
+// Row 1 (collapsed): Name | Competition | Score pill + chevron
+// Row 2a (expanded): rank·nation | round·date | flags
+// Row 2b (expanded): colspan=3, set scores right-aligned
+
+const TR_STYLE = { cursor: 'pointer' };
 
 function MatchRow({ match: m }) {
   const [open, setOpen] = useState(false);
-  const games = parseDisplayGames(m.score, m.isComp1);
-  const scoreStr = getMatchScoreStr(m.gamesWon, m.gamesLost);
-  const isWin = m.result === 'W';
+  const isWin     = m.result === 'W';
+  const scoreStr  = `${m.gamesWon}-${m.gamesLost}`;
+  const comp      = cleanCompetitionName(m.tournament);
+  const round     = cleanRound(m.round);
+  const games     = parseDisplayGames(m.score, m.isComp1);
+  const isUnknown = !m.opponent || m.opponent === 'Unknown';
+  const hasDetail = !isUnknown;
+
+  const row1Bg = open
+    ? { backgroundColor: 'rgba(239,246,255,0.6)' }
+    : {};
+  const row2Bg = { backgroundColor: 'var(--row2-bg, #f8fafc)' };
 
   return (
-    <div className="border-b border-slate-100 last:border-0">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full grid grid-cols-12 gap-2 px-4 py-2.5 hover:bg-blue-50/40 transition-colors items-center text-left">
-        <div className="col-span-2 text-xs text-slate-500">{fmtMonthYear(m.rawDate)}</div>
-        <div className="col-span-4 text-sm font-semibold text-slate-700 truncate">{m.opponent}</div>
-        <div className="col-span-2 text-center text-xs text-slate-500">
-          {m.opponentRank === 999 ? '—' : `#${m.opponentRank}`}
-        </div>
-        <div className="col-span-2 text-center text-xs text-slate-500 uppercase tracking-wide">
-          {m.opponentCountry || '—'}
-        </div>
-        <div className="col-span-2 flex items-center justify-end gap-1.5">
-          {/* Score pill */}
-          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-            isWin ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
-            {scoreStr}
-          </span>
-          {m.isUpset    && <Star size={10} className="text-emerald-500" />}
-          {m.isClutch   && <Zap  size={10} className="text-amber-400"  />}
-          {m.isComeback && <span className="text-[9px] text-sky-500 font-bold">↩</span>}
-          {open ? <ChevronUp size={11} className="text-slate-400" /> : <ChevronDown size={11} className="text-slate-400" />}
-        </div>
-      </button>
+    <>
+      {/* ── Row 1: collapsed ── */}
+      <tr
+        onClick={() => hasDetail && setOpen(o => !o)}
+        style={{ ...TR_STYLE, borderBottom: open ? 'none' : undefined, ...row1Bg }}
+        className={`border-b border-slate-100 ${hasDetail ? 'hover:bg-blue-50/20' : ''} transition-colors`}>
 
+        {/* Col 1 — name */}
+        <td style={{ padding: '10px 14px', verticalAlign: 'middle' }}>
+          <span style={{
+            fontSize: 13, fontWeight: 500,
+            color: isUnknown ? '#94a3b8' : 'var(--color-text-primary)',
+            fontStyle: isUnknown ? 'italic' : 'normal',
+            display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {isUnknown ? 'Opponent data unavailable' : m.opponent}
+          </span>
+        </td>
+
+        {/* Col 2 — competition (centred) */}
+        <td style={{ padding: '10px 14px', verticalAlign: 'middle', textAlign: 'center' }}>
+          <span style={{
+            fontSize: 12, color: 'var(--color-text-secondary)',
+            display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {isUnknown ? '—' : comp}
+          </span>
+        </td>
+
+        {/* Col 3 — score pill + flags + chevron (right) */}
+        <td style={{ padding: '10px 14px', verticalAlign: 'middle', textAlign: 'right', whiteSpace: 'nowrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            {m.isUpset    && <Star size={10} style={{ color: '#10b981' }} />}
+            {m.isClutch   && <Zap  size={10} style={{ color: '#f59e0b' }} />}
+            {m.isComeback && <span style={{ fontSize: 9, color: '#0ea5e9', fontWeight: 700 }}>↩</span>}
+            <span style={{
+              fontSize: 11, fontWeight: 700,
+              padding: '2px 8px', borderRadius: 99, minWidth: 34, textAlign: 'center',
+              background: isWin ? '#d1fae5' : '#fee2e2',
+              color: isWin ? '#065f46' : '#991b1b',
+            }}>
+              {scoreStr}
+            </span>
+            {hasDetail && (
+              open
+                ? <ChevronUp size={11} style={{ color: '#94a3b8' }} />
+                : <ChevronDown size={11} style={{ color: '#94a3b8' }} />
+            )}
+            {!hasDetail && <span style={{ display: 'inline-block', width: 11 }} />}
+          </span>
+        </td>
+      </tr>
+
+      {/* ── Row 2a: meta (rank·nation | round·date | flags) ── */}
       {open && (
-        <div className="px-4 py-3 bg-slate-50/80 border-t border-slate-100 space-y-2">
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div>
-              <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5">Round</p>
-              <p className="font-medium text-slate-700">{m.round}</p>
-            </div>
-            <div>
-              <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5">Nation</p>
-              <p className="font-medium text-slate-700 uppercase">{m.opponentCountry || '—'}</p>
-            </div>
-          </div>
-          {games.length > 0 && (
-            <div>
-              <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5">Set Scores</p>
-              <div className="flex gap-1.5 flex-wrap">
-                {games.map((g, i) => (
-                  <span key={i} className={`px-2 py-1 rounded text-xs font-bold ${
-                    g.pWon ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
+        <tr style={row2Bg} className="border-b-0">
+          <td style={{ padding: '5px 14px 2px', verticalAlign: 'middle' }}>
+            <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+              {m.opponentRank !== 999 && `#${m.opponentRank}`}
+              {m.opponentRank !== 999 && m.opponentCountry && ' · '}
+              {m.opponentCountry && m.opponentCountry.toUpperCase()}
+            </span>
+          </td>
+          <td style={{ padding: '5px 14px 2px', verticalAlign: 'middle', textAlign: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+              {round && `${round} · `}{fmtMonthYear(m.rawDate)}
+            </span>
+          </td>
+          <td style={{ padding: '5px 14px 2px', verticalAlign: 'middle', textAlign: 'right', whiteSpace: 'nowrap' }}>
+            <span style={{ display: 'inline-flex', gap: 6, fontSize: 10, fontWeight: 600 }}>
+              {m.isUpset    && <span style={{ color: '#059669', display:'flex', alignItems:'center', gap:2 }}><Star size={9} />Upset</span>}
+              {m.isClutch   && <span style={{ color: '#b45309', display:'flex', alignItems:'center', gap:2 }}><Zap size={9} />Clutch</span>}
+              {m.isComeback && <span style={{ color: '#0284c7' }}>↩ Comeback</span>}
+            </span>
+          </td>
+        </tr>
+      )}
+
+      {/* ── Row 2b: set scores, colspan=3, right-aligned ── */}
+      {open && (
+        <tr style={{ ...row2Bg, borderBottom: '0.5px solid #f1f5f9' }}>
+          <td colSpan={3} style={{ padding: '3px 14px 10px', textAlign: 'right' }}>
+            <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              {games.length > 0
+                ? games.map((g, i) => (
+                  <span key={i} style={{
+                    fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+                    background: g.pWon ? '#d1fae5' : '#fee2e2',
+                    color: g.pWon ? '#065f46' : '#991b1b',
+                  }}>
                     {g.pScore}–{g.oScore}
                   </span>
-                ))}
-              </div>
-            </div>
-          )}
-          {(m.isUpset || m.isClutch || m.isComeback) && (
-            <div className="flex gap-2 flex-wrap pt-0.5">
-              {m.isUpset    && <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5"><Star size={9} />Upset win</span>}
-              {m.isClutch   && <span className="text-[10px] text-amber-600 font-semibold flex items-center gap-0.5"><Zap size={9} />Clutch</span>}
-              {m.isComeback && <span className="text-[10px] text-sky-600 font-semibold">↩ Comeback</span>}
-            </div>
-          )}
-        </div>
+                ))
+                : <span style={{ fontSize: 11, color: '#cbd5e1' }}>No score data</span>
+              }
+            </span>
+          </td>
+        </tr>
       )}
-    </div>
+    </>
+  );
+}
+
+// MatchList — wraps rows in a shared table with fixed 28/40/32 columns
+function MatchList({ matches }) {
+  if (!matches?.length)
+    return <p className="text-xs text-slate-400 px-4 py-3">No matches in this window.</p>;
+  return (
+    <table style={{
+      width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse',
+    }}>
+      <colgroup>
+        <col style={{ width: '28%' }} />
+        <col style={{ width: '40%' }} />
+        <col style={{ width: '32%' }} />
+      </colgroup>
+      <tbody>
+        {matches.map((m, i) => <MatchRow key={i} match={m} />)}
+      </tbody>
+    </table>
+  );
+}
+
+// ─── WLBarRows — table-row fragments sharing 28/40/32 colgroup ───────────────
+
+function WLBarRows({ label, wins, losses, winPct, isOpen, onToggle, children }) {
+  const total = wins + losses;
+  const HL = isOpen ? { backgroundColor: 'rgba(239,246,255,0.5)' } : {};
+  return (
+    <>
+      <tr onClick={() => total > 0 && onToggle()}
+        style={{ cursor: total > 0 ? 'pointer' : 'default', borderBottom: '0.5px solid #f1f5f9', ...HL }}
+        className="transition-colors hover:bg-slate-50/60">
+        <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>
+          {label}
+        </td>
+        <td style={{ padding: '10px 14px' }} />
+        <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+          {total > 0 ? (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13 }}>
+                <span style={{ fontWeight: 600, color: '#059669' }}>{wins}W</span>
+                <span style={{ color: '#94a3b8' }}> / </span>
+                <span style={{ fontWeight: 600, color: '#f87171' }}>{losses}L</span>
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 600, minWidth: 36, textAlign: 'right',
+                color: winPct >= 50 ? '#059669' : '#f87171' }}>
+                {winPct.toFixed(0)}%
+              </span>
+              {isOpen ? <ChevronUp size={13} style={{ color: '#94a3b8' }} /> : <ChevronDown size={13} style={{ color: '#94a3b8' }} />}
+            </span>
+          ) : (
+            <span style={{ fontSize: 12, color: '#cbd5e1' }}>No matches</span>
+          )}
+        </td>
+      </tr>
+      {total > 0 && (
+        <tr style={{ borderBottom: isOpen ? 'none' : '0.5px solid #f1f5f9', ...HL }}>
+          <td colSpan={3} style={{ padding: '0 14px 8px' }}>
+            <div style={{ height: 6, borderRadius: 99, background: '#f1f5f9', overflow: 'hidden', display: 'flex' }}>
+              <div style={{ width: `${winPct}%`, background: '#34d399', transition: 'width 0.5s' }} />
+              <div style={{ width: `${100 - winPct}%`, background: '#fca5a5', transition: 'width 0.5s' }} />
+            </div>
+          </td>
+        </tr>
+      )}
+      {isOpen && children}
+    </>
   );
 }
 
@@ -330,68 +435,53 @@ function WindowToggle({ value, onChange }) {
   );
 }
 
-// ─── Win% horizontal section tabs ─────────────────────────────────────────────
-
-const WIN_SECTIONS = [
-  { id: 'tier',        label: 'By Event Tier',     Icon: Layers  },
-  { id: 'rankTier',   label: 'By Opp. Rank',       Icon: Target  },
-  { id: 'competitors', label: 'Top Competitors',    Icon: Users   },
-  { id: 'nations',     label: 'Top Nations',        Icon: Shield  },
-];
-
 // ─── Main Component ────────────────────────────────────────────────────────────
+
+const TABS = [
+  { id: 'rank',        label: 'Rank'        },
+  { id: 'winloss',     label: 'Win/Loss'    },
+  { id: 'performance', label: 'Performance' },
+  { id: 'form',        label: 'Form'        },
+];
 
 export default function DynamicOKRDashboard() {
   const [players, setPlayers]               = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [playerMetrics, setPlayerMetrics]   = useState(null);
+  const [playerName, setPlayerName]         = useState('');
   const [loading, setLoading]               = useState(true);
   const [fetching, setFetching]             = useState(false);
   const [error, setError]                   = useState(null);
   const [searchTerm, setSearchTerm]         = useState('');
   const [filteredPlayers, setFilteredPlayers] = useState([]);
-  const [activeTab, setActiveTab]           = useState('rank');
-  const [timeWindow, setTimeWindow]         = useState('6M');
-  const [activeTooltip, setActiveTooltip]   = useState(null);
 
-  // Win% horizontal section + sub-accordions
-  const [winSection, setWinSection]                     = useState('tier');
-  const [expandedEventTier, setExpandedEventTier]       = useState(null);
-  const [expandedRankTier, setExpandedRankTier]         = useState(null);
-  const [expandedCompetitor, setExpandedCompetitor]     = useState(null);
-  const [expandedNation, setExpandedNation]             = useState(null);
+  // Active tab — Rank is default
+  const [activeTab, setActiveTab] = useState('rank');
 
-  // Matches hero card dropdown
-  const [matchesDropdownOpen, setMatchesDropdownOpen]   = useState(false);
+  // Per-tab time windows
+  const [rankWindow, setRankWindow] = useState('6M');
+  const [winWindow,  setWinWindow]  = useState('6M');
+  const [dnaWindow,  setDnaWindow]  = useState('6M');
 
-  // DNA accordion
-  const [dnaSection, setDnaSection]                     = useState(null);
+  // Win/Loss accordion
+  const [wlFilter,      setWlFilter]      = useState('rank');
+  const [openRankBar,   setOpenRankBar]   = useState(null);
+  const [openTierBar,   setOpenTierBar]   = useState(null);
+  const [openCompBar,   setOpenCompBar]   = useState(null);
+  const [openNationBar, setOpenNationBar] = useState(null);
 
-  // Recent Form
-  const [formShowAll, setFormShowAll]                   = useState(false);
-  const [expandedFormIdx, setExpandedFormIdx]           = useState(null);
+  // Performance accordion
+  const [openDna, setOpenDna] = useState(null);
 
-  const topRef     = useRef(null);
-  const contentRef = useRef(null);
-  const sectionRef = useRef({});
+  // Form
+  const [formExpanded, setFormExpanded] = useState(null);
+  const [formShowAll,  setFormShowAll]  = useState(false);
 
-  const scrollToRef = (key) => {
-    setTimeout(() => {
-      sectionRef.current[key]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 120);
-  };
+  const tabContentRef = useRef(null);
 
-  const switchTab = (tab) => {
-    setActiveTab(tab);
-    setMatchesDropdownOpen(false);
-    setDnaSection(null); setExpandedFormIdx(null);
-    setTimeout(() => contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-  };
-
-  const switchWinSection = (section) => {
-    setWinSection(section);
-    setExpandedEventTier(null); setExpandedRankTier(null);
-    setExpandedCompetitor(null); setExpandedNation(null);
+  const switchTab = (id) => {
+    setActiveTab(id);
+    setTimeout(() => tabContentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
   };
 
   // Load players
@@ -405,20 +495,23 @@ export default function DynamicOKRDashboard() {
         if (err) throw err;
         setPlayers(data || []);
         setFilteredPlayers(data || []);
-        if (data?.length > 0) setSelectedPlayer(data[0].player_id);
+        if (data?.length > 0) {
+          setSelectedPlayer(data[0].player_id);
+          setPlayerName(data[0].player_name);
+        }
       } catch (err) { setError(err.message); }
       finally { setLoading(false); }
     })();
   }, []);
 
+  // Fetch on player change
   useEffect(() => {
     if (!selectedPlayer) return;
     (async () => {
       setFetching(true); setError(null);
-      setDnaSection(null); setExpandedFormIdx(null);
-      setFormShowAll(false); setMatchesDropdownOpen(false);
-      setExpandedEventTier(null); setExpandedRankTier(null);
-      setExpandedCompetitor(null); setExpandedNation(null);
+      setOpenRankBar(null); setOpenTierBar(null);
+      setOpenCompBar(null); setOpenNationBar(null);
+      setOpenDna(null); setFormExpanded(null); setFormShowAll(false);
       try {
         const [
           { data: matches,    error: e1 },
@@ -470,18 +563,18 @@ export default function DynamicOKRDashboard() {
       const matchDate = new Date(m.event_date);
       const opponentRank        = oppH.find(r => new Date(r.ranking_date) <= matchDate)?.rank ?? 999;
       const opponentCurrentRank = oppH[0]?.rank ?? 999;
-      const { gamesWon, gamesLost, pointsWon, pointsLost, totalGames } = parseScoresForPlayer(m.game_scores, isComp1);
+      const { gamesWon, gamesLost, pointsWon, pointsLost, totalGames } =
+        parseScoresForPlayer(m.game_scores, isComp1);
       const pointDiff = totalGames > 0 ? (pointsWon - pointsLost) / totalGames : null;
       return {
         rawDate: matchDate,
-        date: matchDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' }),
         opponent: oppP?.player_name || 'Unknown',
         opponentCountry: oppP?.country_code || null,
         opponentRank, opponentCurrentRank,
         tournament: events?.find(e => e.event_id === m.event_id)?.event_name || 'Unknown',
         eventTier:  events?.find(e => e.event_id === m.event_id)?.event_tier ?? null,
-        round:  m.round_phase || 'N/A',
-        score:  m.game_scores || 'N/A',
+        round: m.round_phase || 'N/A',
+        score: m.game_scores || 'N/A',
         result: won ? 'W' : 'L',
         isComp1,
         isUpset:       won && opponentRank < playerCurrentRank,
@@ -504,18 +597,22 @@ export default function DynamicOKRDashboard() {
     };
   }
 
-  const activeWindow = useMemo(
-    () => playerMetrics?.windows[timeWindow] || null,
-    [playerMetrics, timeWindow]
-  );
+  const w6  = playerMetrics?.windows['6M'];
+  const win = playerMetrics?.windows[winWindow];
+  const dna = playerMetrics?.windows[dnaWindow];
+  const rankWindowData = playerMetrics?.windows[rankWindow];
+
+  const verdict = useMemo(() => w6 ? computeVerdict(w6) : null, [w6]);
 
   const rankChartData = useMemo(() => {
     if (!playerMetrics?.rankingHistory) return [];
-    return buildRankChartData(playerMetrics.rankingHistory, parseInt(timeWindow));
-  }, [playerMetrics, timeWindow]);
+    return buildRankChartData(playerMetrics.rankingHistory, parseInt(rankWindow));
+  }, [playerMetrics, rankWindow]);
 
   const chartRanks = rankChartData.map(d => d.rank).filter(Boolean);
-  const bestRank   = chartRanks.length ? Math.min(...chartRanks) : null;
+  const peakRank   = chartRanks.length ? Math.min(...chartRanks) : null;
+  const startRank  = rankWindowData && playerMetrics
+    ? playerMetrics.ranking + rankWindowData.rankChange : null;
 
   const recentAll     = useMemo(() => playerMetrics?.matchLedger.slice(0, 12) || [], [playerMetrics]);
   const recentDisplay = formShowAll ? recentAll : recentAll.slice(0, 5);
@@ -526,11 +623,18 @@ export default function DynamicOKRDashboard() {
       : players.filter(p => p.player_name.toLowerCase().includes(v.toLowerCase())));
   };
 
+  const WL_FILTERS = [
+    { id: 'rank',       label: 'By opponent rank' },
+    { id: 'tier',       label: 'By event tier'    },
+    { id: 'competitor', label: 'Top opponents'    },
+    { id: 'nation',     label: 'By nation'        },
+  ];
+
   if (loading) return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-      <div className="flex items-center gap-3 text-slate-400">
-        <Activity size={18} className="animate-pulse" />
-        <span className="text-sm">Loading players…</span>
+      <div className="flex items-center gap-2 text-slate-400">
+        <Activity size={16} className="animate-pulse" />
+        <span className="text-sm">Loading…</span>
       </div>
     </div>
   );
@@ -540,20 +644,14 @@ export default function DynamicOKRDashboard() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
         .okr * { font-family: 'Sora', sans-serif; }
-        .slide-down { animation: sd 0.15s ease-out; }
-        @keyframes sd { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
+        .slide { animation: sl 0.15s ease-out; }
+        @keyframes sl { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
-      <div className="okr min-h-screen bg-slate-50 p-6">
-        <div className="max-w-5xl mx-auto space-y-5" ref={topRef}>
+      <div className="okr min-h-screen bg-slate-50">
+        <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
 
-          {/* Header */}
-          <div>
-            <h1 className="text-2xl font-semibold text-slate-800 tracking-tight">Player Intelligence</h1>
-            <p className="text-xs text-slate-400 mt-0.5">TOPS Analytics · TT</p>
-          </div>
-
-          {/* Player selector */}
+          {/* ── Selector ── */}
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -562,7 +660,13 @@ export default function DynamicOKRDashboard() {
                 className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
             </div>
             <select value={selectedPlayer || ''}
-              onChange={e => { setSelectedPlayer(parseInt(e.target.value)); setActiveTab('rank'); }}
+              onChange={e => {
+                const id = parseInt(e.target.value);
+                const p  = players.find(p => p.player_id === id);
+                setSelectedPlayer(id);
+                if (p) setPlayerName(p.player_name);
+                setActiveTab('rank');
+              }}
               className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100">
               <option value="">Select player…</option>
               {filteredPlayers.map(p => (
@@ -580,607 +684,376 @@ export default function DynamicOKRDashboard() {
             </div>
           )}
 
-          {selectedPlayer && activeWindow && playerMetrics && (
+          {selectedPlayer && playerMetrics && w6 && (
             <>
-              {/* ═══ KPI Strip — sole navigation ═══ */}
-              <div className="grid grid-cols-4 gap-3">
-
-                <button onClick={() => switchTab('rank')}
-                  className={`bg-white rounded-xl border p-4 text-left hover:shadow-sm transition-all group ${activeTab === 'rank' ? 'border-blue-300 bg-blue-50/50 shadow-sm' : 'border-slate-200'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <TrendingUp size={12} className="text-slate-400" />
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Rank</span>
-                    </div>
-                    <ArrowRight size={11} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
+              {/* ═══ VERDICT LINE ═══ */}
+              {verdict && (() => {
+                const t = TONE[verdict.tone];
+                return (
+                  <div className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl ${t.bg}`}>
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: t.dot }} />
+                    <p className={`text-sm font-medium ${t.text}`}>
+                      <span className="font-semibold">{playerName}</span>
+                      <span className="font-normal"> · World </span>
+                      <span className="font-semibold">#{playerMetrics.ranking}</span>
+                      <span className="font-normal"> · {verdict.text}</span>
+                    </p>
                   </div>
-                  <p className="text-2xl font-bold text-slate-800">#{playerMetrics.ranking}</p>
-                  <p className={`text-xs mt-1 font-semibold ${
-                    activeWindow.rankChange > 0 ? 'text-emerald-600'
-                    : activeWindow.rankChange < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                    {activeWindow.rankChange > 0 ? `↑ +${activeWindow.rankChange}`
-                      : activeWindow.rankChange < 0 ? `↓ ${activeWindow.rankChange}` : '—'}
-                    <span className="text-slate-400 font-normal"> {timeWindow}</span>
-                  </p>
-                </button>
+                );
+              })()}
 
-                <button onClick={() => switchTab('winpct')}
-                  className={`bg-white rounded-xl border p-4 text-left hover:shadow-sm transition-all group ${activeTab === 'winpct' ? 'border-blue-300 bg-blue-50/50 shadow-sm' : 'border-slate-200'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Trophy size={12} className="text-slate-400" />
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Win %</span>
+              {/* ═══ PLAYER CARD ═══ */}
+              <div className="bg-white border border-slate-200 rounded-xl px-5 py-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-sm font-bold text-blue-700 shrink-0">
+                      {getInitials(playerName)}
                     </div>
-                    <ArrowRight size={11} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
-                  </div>
-                  <p className="text-2xl font-bold text-slate-800">{activeWindow.winRate.toFixed(1)}%</p>
-                  <p className="text-xs text-slate-500 mt-1">
-                    <span className="text-emerald-600 font-semibold">{activeWindow.wins}W</span>
-                    {' / '}
-                    <span className="text-red-400 font-semibold">{activeWindow.losses}L</span>
-                    <span className="text-slate-400 ml-1">· {timeWindow}</span>
-                  </p>
-                </button>
-
-                <button onClick={() => switchTab('dna')}
-                  className={`bg-white rounded-xl border p-4 text-left hover:shadow-sm transition-all group ${activeTab === 'dna' ? 'border-blue-300 bg-blue-50/50 shadow-sm' : 'border-slate-200'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Activity size={12} className="text-slate-400" />
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">DNA</span>
-                    </div>
-                    <ArrowRight size={11} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
-                  </div>
-                  <p className="text-2xl font-bold text-slate-800">{activeWindow.clutchIndex.toFixed(1)}%</p>
-                  <p className="text-xs text-slate-400 mt-1">Clutch index · {timeWindow}</p>
-                </button>
-
-                <button onClick={() => switchTab('form')}
-                  className={`bg-white rounded-xl border p-4 text-left hover:shadow-sm transition-all group ${activeTab === 'form' ? 'border-blue-300 bg-blue-50/50 shadow-sm' : 'border-slate-200'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1.5">
-                      <Clock size={12} className="text-slate-400" />
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Recent Form</span>
-                    </div>
-                    <ArrowRight size={11} className="text-slate-300 group-hover:text-slate-400 transition-colors" />
-                  </div>
-                  <div className="flex gap-1.5 mt-1">
-                    {recentAll.slice(0, 5).map((m, i) => (
-                      <div key={i} className={`w-5 h-5 rounded-full ${
-                        m.result === 'W' ? m.isUpset ? 'bg-emerald-500' : 'bg-emerald-200' : 'bg-red-300'}`} />
-                    ))}
-                    {!recentAll.length && <span className="text-xs text-slate-400">No data</span>}
-                  </div>
-                  <p className="text-xs text-slate-400 mt-1.5">Last {Math.min(5, recentAll.length)} matches</p>
-                </button>
-
-              </div>
-
-              {/* ═══ Tab Content — no duplicate tab bar ═══ */}
-              <div ref={contentRef} className="space-y-4">
-
-                {/* ══ RANK ══ */}
-                {activeTab === 'rank' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Ranking Trajectory</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">
-                          {timeWindow === '6M' ? 'Monthly x-axis' : 'Quarterly x-axis (Jan/Apr/Jul/Oct)'} · lower = better
-                        </p>
-                      </div>
-                      <WindowToggle value={timeWindow} onChange={setTimeWindow} />
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { label: 'Current Rank', value: `#${playerMetrics.ranking}`, color: 'text-slate-800' },
-                        { label: `Peak (${timeWindow})`,   value: bestRank ? `#${bestRank}` : '—', color: 'text-emerald-600' },
-                        {
-                          label: `Change (${timeWindow})`,
-                          value: activeWindow.rankChange > 0 ? `+${activeWindow.rankChange}`
-                            : activeWindow.rankChange === 0 ? '—' : `${activeWindow.rankChange}`,
-                          color: activeWindow.rankChange > 0 ? 'text-emerald-600'
-                            : activeWindow.rankChange < 0 ? 'text-red-400' : 'text-slate-400',
-                        },
-                      ].map(c => (
-                        <div key={c.label} className="bg-white border border-slate-200 rounded-xl p-3 text-center">
-                          <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">{c.label}</p>
-                          <p className={`text-2xl font-bold ${c.color}`}>{c.value}</p>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="bg-white border border-slate-200 rounded-xl p-4">
-                      {rankChartData.length > 1 ? (
-                        <ResponsiveContainer width="100%" height={280}>
-                          <AreaChart data={rankChartData} margin={{ top: 10, right: 40, bottom: 0, left: -10 }}>
-                            <defs>
-                              <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.12} />
-                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}    />
-                              </linearGradient>
-                              <linearGradient id="pg" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%"  stopColor="#10b981" stopOpacity={0.08} />
-                                <stop offset="95%" stopColor="#10b981" stopOpacity={0}    />
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#94a3b8' }}
-                              tickLine={false} axisLine={false}
-                              interval={0}
-                              // Hide ticks with empty labels
-                              tickFormatter={v => v}
-                            />
-                            <YAxis yAxisId="rank" reversed domain={['auto', 'auto']}
-                              tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false}
-                              tickFormatter={v => `#${v}`} />
-                            <YAxis yAxisId="pts" orientation="right"
-                              tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
-                            <Tooltip
-                              contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '10px', fontSize: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.06)' }}
-                              labelStyle={{ color: '#64748b', fontWeight: 600 }}
-                              formatter={(v, name) => [name === 'rank' ? `#${v}` : v, name === 'rank' ? 'Rank' : 'Points']}
-                            />
-                            {bestRank && (
-                              <ReferenceLine yAxisId="rank" y={bestRank}
-                                stroke="#10b981" strokeDasharray="4 4" strokeWidth={1.5}
-                                label={{ value: `Peak #${bestRank}`, position: 'insideTopRight', fontSize: 9, fill: '#10b981' }} />
-                            )}
-                            <Area yAxisId="rank" type="monotone" dataKey="rank"
-                              stroke="#3b82f6" strokeWidth={2} fill="url(#rg)"
-                              dot={false} activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} />
-                            <Area yAxisId="pts" type="monotone" dataKey="points"
-                              stroke="#10b981" strokeWidth={1.5} fill="url(#pg)"
-                              dot={false} activeDot={{ r: 3, fill: '#10b981', strokeWidth: 0 }}
-                              strokeDasharray="4 4" />
-                          </AreaChart>
-                        </ResponsiveContainer>
-                      ) : (
-                        <div className="h-60 flex items-center justify-center text-slate-400 text-sm">
-                          Not enough ranking data for {timeWindow} window
-                        </div>
-                      )}
-                      <p className="text-[10px] text-slate-400 mt-2">
-                        — Rank (left axis) &nbsp;·&nbsp; - - Points (right axis)
+                    <div>
+                      <p className="text-base font-semibold text-slate-800">{playerName}</p>
+                      <p className="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">
+                        {players.find(p => p.player_id === selectedPlayer)?.gender_label}
                       </p>
                     </div>
                   </div>
-                )}
+                  <div className="flex items-center gap-6">
+                    {[
+                      { label: 'World rank',    value: `#${playerMetrics.ranking}` },
+                      { label: 'Win rate (6M)', value: `${w6.winRate.toFixed(1)}%` },
+                      { label: 'Matches (6M)',  value: `${w6.matchCount}`           },
+                    ].map(s => (
+                      <div key={s.label} className="text-center">
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">{s.label}</p>
+                        <p className="text-xl font-bold text-slate-800">{s.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-                {/* ══ WIN % ══ */}
-                {activeTab === 'winpct' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Win %</h3>
-                      <WindowToggle value={timeWindow} onChange={setTimeWindow} />
-                    </div>
+              {/* ═══ HORIZONTAL TABS ═══ */}
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
 
-                    {/* Hero row */}
-                    <div className="grid grid-cols-4 gap-3">
-                      {[
-                        { label: 'Win Rate',         value: `${activeWindow.winRate.toFixed(1)}%`,    sub: `${activeWindow.wins}W / ${activeWindow.losses}L` },
-                        { label: 'Upset Yield',      value: `${activeWindow.upsetYield.toFixed(1)}%`, sub: '% of wins vs higher-ranked' },
-                        { label: 'Avg Opp Rank Won', value: activeWindow.avgOpponentRankBeaten ? `#${activeWindow.avgOpponentRankBeaten}` : '—', sub: 'avg rank of opp. beaten' },
-                        { label: 'Matches', value: activeWindow.matchCount, sub: `${timeWindow} window`, clickable: true },
-                      ].map(card => (
-                        <div key={card.label} className="relative">
-                          <div
-                            onClick={card.clickable ? () => setMatchesDropdownOpen(o => !o) : undefined}
-                            className={`bg-white border border-slate-200 rounded-xl p-3 ${card.clickable ? 'cursor-pointer hover:border-blue-300 hover:bg-blue-50/30 transition-all' : ''}`}>
-                            <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-1">{card.label}</p>
-                            <div className="flex items-center gap-1">
-                              <p className="text-xl font-bold text-slate-800">{card.value}</p>
-                              {card.clickable && (matchesDropdownOpen
-                                ? <ChevronUp size={13} className="text-slate-400" />
-                                : <ChevronDown size={13} className="text-slate-400" />)}
-                            </div>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{card.sub}</p>
+                {/* Tab bar */}
+                <div className="flex border-b border-slate-100">
+                  {TABS.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => switchTab(tab.id)}
+                      className={`flex-1 py-3.5 text-sm font-medium transition-all relative ${
+                        activeTab === tab.id
+                          ? 'text-slate-900'
+                          : 'text-slate-400 hover:text-slate-600'}`}>
+                      {tab.label}
+                      {activeTab === tab.id && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-800 rounded-full" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab content */}
+                <div ref={tabContentRef}>
+
+                  {/* ══ RANK TAB ══ */}
+                  {activeTab === 'rank' && (
+                    <div className="p-5 space-y-4 slide">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-500 font-medium">Is this player improving?</p>
+                        <WindowToggle value={rankWindow} onChange={setRankWindow} />
+                      </div>
+
+                      {/* Summary row */}
+                      <div className="flex items-center gap-5 flex-wrap">
+                        <div className="text-center">
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">{rankWindow} ago</p>
+                          <p className="text-xl font-bold text-slate-700">
+                            {startRank && startRank < 999 ? `#${startRank}` : '—'}
+                          </p>
+                        </div>
+                        <ArrowRight size={14} className={
+                          rankWindowData?.rankChange > 0 ? 'text-emerald-400'
+                          : rankWindowData?.rankChange < 0 ? 'text-red-300' : 'text-slate-200'} />
+                        <div className="text-center">
+                          <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">Today</p>
+                          <p className="text-xl font-bold text-slate-800">#{playerMetrics.ranking}</p>
+                        </div>
+                        {peakRank && (
+                          <div className="text-center ml-3">
+                            <p className="text-[10px] text-slate-400 uppercase tracking-widest mb-0.5">Period peak</p>
+                            <p className="text-xl font-bold text-blue-500">#{peakRank}</p>
                           </div>
-                          {card.clickable && matchesDropdownOpen && (
-                            <div className="slide-down absolute top-full left-0 z-20 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
-                              style={{ minWidth: '640px' }}>
-                              <div className="px-3 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                                <span className="text-xs font-semibold text-slate-600">All {activeWindow.matchCount} matches · {timeWindow}</span>
-                                <button onClick={() => setMatchesDropdownOpen(false)}>
-                                  <ChevronUp size={13} className="text-slate-400" />
-                                </button>
-                              </div>
-                              <div className="max-h-72 overflow-y-auto">
-                                <MatchTable matches={activeWindow.allMatches} />
-                              </div>
-                            </div>
-                          )}
+                        )}
+                        <div className="ml-auto">
+                          {(() => {
+                            const rc = rankWindowData?.rankChange ?? 0;
+                            if (rc > 0) return <span className="text-xs font-semibold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700">↑ Improving</span>;
+                            if (rc < 0) return <span className="text-xs font-semibold px-3 py-1 rounded-full bg-red-50 text-red-500">↓ Declining</span>;
+                            return <span className="text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-500">— Stable</span>;
+                          })()}
                         </div>
-                      ))}
-                    </div>
+                      </div>
 
-                    {/* ── Horizontal section tabs ── */}
-                    <div className="flex gap-1 border-b border-slate-200">
-                      {WIN_SECTIONS.map(({ id, label, Icon }) => (
-                        <button key={id} onClick={() => switchWinSection(id)}
-                          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold rounded-t-lg border transition-all whitespace-nowrap ${
-                            winSection === id
-                              ? 'bg-gradient-to-b from-blue-50 to-white border-slate-200 border-b-white text-blue-700 -mb-px'
-                              : 'border-transparent text-slate-400 hover:text-slate-600'}`}>
-                          <Icon size={12} />
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Section content */}
-                    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-
-                      {/* By Event Tier */}
-                      {winSection === 'tier' && (
-                        <div className="slide-down">
-                          {activeWindow.tierPerfArr.length === 0
-                            ? <p className="text-sm text-slate-400 p-4">No tier data in this window.</p>
-                            : activeWindow.tierPerfArr.map(t => (
-                              <div key={t.tier} className="border-b border-slate-100 last:border-0">
-                                <button
-                                  onClick={() => setExpandedEventTier(expandedEventTier === t.tier ? null : t.tier)}
-                                  className="w-full grid grid-cols-12 gap-2 px-4 py-3 hover:bg-slate-50 transition-colors items-center text-left">
-                                  <div className="col-span-4 text-sm font-semibold text-slate-700">
-                                    {t.tier === 'Unknown' ? 'Unclassified' : `Grade ${t.tier}`}
-                                  </div>
-                                  <div className="col-span-4 text-sm text-center">
-                                    <span className="text-emerald-600 font-semibold">{t.wins}W</span>
-                                    {' / '}
-                                    <span className="text-red-400 font-semibold">{t.losses}L</span>
-                                  </div>
-                                  <div className={`col-span-3 text-center font-bold text-sm ${parseFloat(t.winRate) >= 50 ? 'text-emerald-600' : 'text-red-400'}`}>
-                                    {t.winRate}%
-                                  </div>
-                                  <div className="col-span-1 text-right">
-                                    {expandedEventTier === t.tier
-                                      ? <ChevronUp size={12} className="text-slate-400 ml-auto" />
-                                      : <ChevronDown size={12} className="text-slate-400 ml-auto" />}
-                                  </div>
-                                </button>
-                                {expandedEventTier === t.tier && (
-                                  <div className="slide-down border-t border-slate-100 bg-slate-50/40">
-                                    <MatchTable matches={t.matches} />
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                        </div>
-                      )}
-
-                      {/* By Opponent Rank */}
-                      {winSection === 'rankTier' && (
-                        <div className="slide-down">
-                          {activeWindow.rankTierBuckets.map(b => (
-                            <div key={b.label} className="border-b border-slate-100 last:border-0">
-                              <button
-                                onClick={() => setExpandedRankTier(expandedRankTier === b.label ? null : b.label)}
-                                className="w-full grid grid-cols-12 gap-2 px-4 py-3 hover:bg-slate-50 transition-colors items-center text-left">
-                                <div className="col-span-4 text-sm font-semibold text-slate-700">Rank {b.label}</div>
-                                <div className="col-span-4 text-center text-sm">
-                                  {b.total > 0
-                                    ? <><span className="text-emerald-600 font-semibold">{b.wins}W</span>{' / '}<span className="text-red-400 font-semibold">{b.losses}L</span></>
-                                    : <span className="text-slate-300 text-xs">No matches</span>}
-                                </div>
-                                <div className={`col-span-3 text-center font-bold text-sm ${
-                                  b.total === 0 ? 'text-slate-300' : b.winRate >= 50 ? 'text-emerald-600' : 'text-red-400'}`}>
-                                  {b.total > 0 ? `${b.winRate}%` : '—'}
-                                </div>
-                                <div className="col-span-1 text-right">
-                                  {b.total > 0 && (expandedRankTier === b.label
-                                    ? <ChevronUp size={12} className="text-slate-400 ml-auto" />
-                                    : <ChevronDown size={12} className="text-slate-400 ml-auto" />)}
-                                </div>
-                              </button>
-                              {expandedRankTier === b.label && b.matches.length > 0 && (
-                                <div className="slide-down border-t border-slate-100 bg-slate-50/40">
-                                  <MatchTable matches={b.matches} />
-                                </div>
+                      {/* Chart */}
+                      <div className="bg-slate-50 rounded-xl p-4">
+                        {rankChartData.length > 1 ? (
+                          <ResponsiveContainer width="100%" height={200}>
+                            <AreaChart data={rankChartData} margin={{ top: 8, right: 8, bottom: 0, left: -15 }}>
+                              <defs>
+                                <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.1} />
+                                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}   />
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                              <XAxis dataKey="label" tick={<CustomXTick />} tickLine={false} axisLine={false} interval={0} />
+                              <YAxis reversed domain={['auto', 'auto']}
+                                tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false}
+                                tickFormatter={v => `#${v}`} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: 12 }}
+                                labelStyle={{ color: '#64748b' }}
+                                formatter={(v, name) => [name === 'rank' ? `#${v}` : v, name === 'rank' ? 'Rank' : 'Points']}
+                              />
+                              {peakRank && (
+                                <ReferenceLine y={peakRank} stroke="#10b981" strokeDasharray="4 4" strokeWidth={1.5}
+                                  label={{ value: `Peak #${peakRank}`, position: 'insideTopRight', fontSize: 9, fill: '#10b981' }} />
                               )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Top Competitors */}
-                      {winSection === 'competitors' && (
-                        <div className="slide-down">
-                          {activeWindow.frequentCompetitors.length === 0
-                            ? <p className="text-sm text-slate-400 p-4">No data in this window.</p>
-                            : activeWindow.frequentCompetitors.map((c, ci) => (
-                              <div key={ci} className="border-b border-slate-100 last:border-0">
-                                <button
-                                  onClick={() => setExpandedCompetitor(expandedCompetitor === c.name ? null : c.name)}
-                                  className="w-full grid grid-cols-12 gap-2 px-4 py-3 hover:bg-slate-50 transition-colors items-center text-left">
-                                  <div className="col-span-4 text-sm font-semibold text-slate-700 truncate">{c.name}</div>
-                                  <div className="col-span-2 text-center text-xs text-slate-400">
-                                    {c.currentRank === 999 ? '—' : `#${c.currentRank}`}
-                                  </div>
-                                  <div className="col-span-3 text-center text-sm">
-                                    <span className="text-emerald-600 font-semibold">{c.wins}W</span>
-                                    {' / '}
-                                    <span className="text-red-400 font-semibold">{c.losses}L</span>
-                                  </div>
-                                  <div className="col-span-2 text-center">
-                                    <span className={`text-sm font-bold ${parseFloat(c.winRate) >= 50 ? 'text-emerald-600' : 'text-red-400'}`}>
-                                      {c.winRate}%
-                                    </span>
-                                  </div>
-                                  <div className="col-span-1 text-right">
-                                    {expandedCompetitor === c.name
-                                      ? <ChevronUp size={12} className="text-slate-400 ml-auto" />
-                                      : <ChevronDown size={12} className="text-slate-400 ml-auto" />}
-                                  </div>
-                                </button>
-                                {expandedCompetitor === c.name && (
-                                  <div className="slide-down border-t border-slate-100 bg-slate-50/40">
-                                    <MatchTable matches={c.matches} />
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                        </div>
-                      )}
-
-                      {/* Top Nations */}
-                      {winSection === 'nations' && (
-                        <div className="slide-down">
-                          {activeWindow.topNations.length === 0
-                            ? <p className="text-sm text-slate-400 p-4">No nation data in this window.</p>
-                            : activeWindow.topNations.map((n, ni) => (
-                              <div key={ni} className="border-b border-slate-100 last:border-0">
-                                <button
-                                  onClick={() => setExpandedNation(expandedNation === n.country ? null : n.country)}
-                                  className="w-full grid grid-cols-12 gap-2 px-4 py-3 hover:bg-slate-50 transition-colors items-center text-left">
-                                  <div className="col-span-4 text-sm font-semibold text-slate-700 uppercase tracking-wide">{n.country}</div>
-                                  <div className="col-span-2 text-center text-xs text-slate-400">{n.total} matches</div>
-                                  <div className="col-span-3 text-center text-sm">
-                                    <span className="text-emerald-600 font-semibold">{n.wins}W</span>
-                                    {' / '}
-                                    <span className="text-red-400 font-semibold">{n.losses}L</span>
-                                  </div>
-                                  <div className="col-span-2 text-center">
-                                    <span className={`text-sm font-bold ${parseFloat(n.winRate) >= 50 ? 'text-emerald-600' : 'text-red-400'}`}>
-                                      {n.winRate}%
-                                    </span>
-                                  </div>
-                                  <div className="col-span-1 text-right">
-                                    {expandedNation === n.country
-                                      ? <ChevronUp size={12} className="text-slate-400 ml-auto" />
-                                      : <ChevronDown size={12} className="text-slate-400 ml-auto" />}
-                                  </div>
-                                </button>
-                                {expandedNation === n.country && (
-                                  <div className="slide-down border-t border-slate-100 bg-slate-50/40">
-                                    <MatchTable matches={n.matches} />
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                        </div>
-                      )}
-
-                    </div>
-                  </div>
-                )}
-
-                {/* ══ PERFORMANCE DNA ══ */}
-                {activeTab === 'dna' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Performance DNA</h3>
-                      <WindowToggle value={timeWindow} onChange={setTimeWindow} />
-                    </div>
-
-                    {/* Avg Pt Diff summary */}
-                    <div className="bg-white border border-slate-200 rounded-xl p-4 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs text-slate-400 mb-1">Avg Point Differential per Game</p>
-                        <p className={`text-3xl font-bold ${
-                          activeWindow.avgPtDiff > 0 ? 'text-emerald-600'
-                          : activeWindow.avgPtDiff < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                          {activeWindow.avgPtDiff >= 0 ? '+' : ''}{activeWindow.avgPtDiff.toFixed(2)}
-                        </p>
-                        <p className="text-xs text-slate-400 mt-1">Across {activeWindow.matchCount} matches · {timeWindow}</p>
+                              <Area type="monotone" dataKey="rank" stroke="#3b82f6" strokeWidth={2}
+                                fill="url(#rg)" dot={false} activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        ) : (
+                          <div className="h-48 flex items-center justify-center text-slate-400 text-sm">
+                            Not enough data for {rankWindow} window
+                          </div>
+                        )}
                       </div>
-                      <BarChart2 size={32} className="text-slate-200" />
                     </div>
+                  )}
 
-                    <div className="space-y-2">
-                      {[
-                        {
-                          key: 'straightWins',
-                          title: 'Straight Sets Wins (3-0)',
-                          Icon: CheckCircle2,
-                          count: activeWindow.straightSetsWins,
-                          pct: activeWindow.wins > 0 ? ((activeWindow.straightSetsWins / activeWindow.wins) * 100).toFixed(1) : null,
-                          pctOf: `of ${activeWindow.wins} wins`,
-                          color: 'text-emerald-600',
-                          tip: 'Matches won without dropping a single game.',
-                          matches: activeWindow.dnaGroups.straightWins,
-                        },
-                        {
-                          key: 'straightLosses',
-                          title: 'Straight Sets Losses (0-3)',
-                          Icon: XCircle,
-                          count: activeWindow.straightSetsLosses,
-                          pct: activeWindow.losses > 0 ? ((activeWindow.straightSetsLosses / activeWindow.losses) * 100).toFixed(1) : null,
-                          pctOf: `of ${activeWindow.losses} losses`,
-                          color: 'text-red-400',
-                          tip: 'Matches lost without winning a single game.',
-                          matches: activeWindow.dnaGroups.straightLosses,
-                        },
-                        {
-                          key: 'comebacks',
-                          title: 'Comeback Wins',
-                          Icon: ArrowRight,
-                          count: activeWindow.comebackWins,
-                          pct: activeWindow.wins > 0 ? ((activeWindow.comebackWins / activeWindow.wins) * 100).toFixed(1) : null,
-                          pctOf: 'won after losing game 1',
-                          color: 'text-sky-600',
-                          tip: 'Matches won despite losing the opening game.',
-                          matches: activeWindow.dnaGroups.comebacks,
-                        },
-                        {
-                          key: 'clutch',
-                          title: `Clutch Index · ${activeWindow.clutchIndex.toFixed(1)}%`,
-                          Icon: Zap,
-                          count: activeWindow.dnaGroups.clutch.length,
-                          pct: activeWindow.wins > 0 ? ((activeWindow.dnaGroups.clutch.length / activeWindow.wins) * 100).toFixed(1) : null,
-                          pctOf: 'wins in 4–5 game matches',
-                          color: 'text-amber-600',
-                          tip: '% of wins that required 4 or 5 games.',
-                          matches: activeWindow.dnaGroups.clutch,
-                        },
-                      ].map(item => (
-                        <div key={item.key} className="border border-slate-200 rounded-xl overflow-hidden">
-                          <button
-                            onClick={() => setDnaSection(dnaSection === item.key ? null : item.key)}
-                            className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${
-                              dnaSection === item.key ? 'bg-blue-50' : 'bg-white hover:bg-slate-50'}`}>
-                            <div className="flex items-center gap-3">
-                              <item.Icon size={13} className="text-slate-400" />
-                              <div className="text-left">
-                                <p className="text-sm font-semibold text-slate-700">{item.title}</p>
-                                <p className="text-xs text-slate-400">
-                                  <span className={`font-bold ${item.color}`}>{item.count}</span>
-                                  {item.pct && <span> · {item.pct}% {item.pctOf}</span>}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <div className="relative"
-                                onMouseEnter={() => setActiveTooltip(item.key)}
-                                onMouseLeave={() => setActiveTooltip(null)}>
-                                <Info size={11} className="text-slate-300 hover:text-slate-400 cursor-help" />
-                                {activeTooltip === item.key && (
-                                  <div className="absolute right-0 bottom-5 w-48 bg-white border border-slate-200 text-slate-600 text-xs rounded-lg p-2.5 z-30 shadow-lg leading-relaxed">
-                                    {item.tip}
-                                  </div>
-                                )}
-                              </div>
-                              {dnaSection === item.key
-                                ? <ChevronUp size={14} className="text-slate-400" />
-                                : <ChevronDown size={14} className="text-slate-400" />}
-                            </div>
+                  {/* ══ WIN/LOSS TAB ══ */}
+                  {activeTab === 'winloss' && win && (
+                    <div className="p-5 space-y-4 slide">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-500 font-medium">Where are they winning and losing?</p>
+                        <WindowToggle value={winWindow} onChange={v => {
+                          setWinWindow(v);
+                          setOpenRankBar(null); setOpenTierBar(null);
+                          setOpenCompBar(null); setOpenNationBar(null);
+                        }} />
+                      </div>
+
+                      {/* Filter pills */}
+                      <div className="flex gap-2 flex-wrap">
+                        {WL_FILTERS.map(f => (
+                          <button key={f.id} onClick={() => {
+                            setWlFilter(f.id);
+                            setOpenRankBar(null); setOpenTierBar(null);
+                            setOpenCompBar(null); setOpenNationBar(null);
+                          }}
+                            className={`text-xs font-medium px-3 py-1 rounded-full border transition-all ${
+                              wlFilter === f.id
+                                ? 'border-slate-700 bg-slate-800 text-white'
+                                : 'border-slate-200 bg-white text-slate-500 hover:border-slate-300'}`}>
+                            {f.label}
                           </button>
-                          {dnaSection === item.key && (
-                            <div className="slide-down border-t border-slate-100">
-                              <MatchTable matches={item.matches} />
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                        ))}
+                      </div>
 
-                {/* ══ RECENT FORM ══ */}
-                {activeTab === 'form' && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recent Form</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">Click any row to expand · showing last {recentDisplay.length}</p>
+                      {/* ONE unified table — summary + bars + match rows all share 28/40/32 */}
+                      <div className="border border-slate-200 rounded-xl overflow-hidden">
+                        <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+                          <colgroup>
+                            <col style={{ width: '28%' }} />
+                            <col style={{ width: '40%' }} />
+                            <col style={{ width: '32%' }} />
+                          </colgroup>
+                          <tbody>
+                            {/* Summary row */}
+                            <tr style={{ borderBottom: '0.5px solid #e2e8f0', background: '#f8fafc' }}>
+                              <td style={{ padding: '10px 14px', verticalAlign: 'top' }}>
+                                <p style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Overall</p>
+                                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                                  <span style={{ color: '#059669' }}>{win.wins}W</span>
+                                  <span style={{ color: '#94a3b8' }}> / </span>
+                                  <span style={{ color: '#f87171' }}>{win.losses}L</span>
+                                  <span style={{ color: '#64748b', marginLeft: 4 }}>· {win.winRate.toFixed(1)}%</span>
+                                </p>
+                              </td>
+                              <td style={{ padding: '10px 14px', verticalAlign: 'top', textAlign: 'center' }}>
+                                <p style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Upset yield</p>
+                                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                                  {win.upsetYield.toFixed(1)}%
+                                  <span style={{ fontSize: 11, fontWeight: 400, color: '#94a3b8', marginLeft: 4 }}>of wins vs higher-ranked</span>
+                                </p>
+                              </td>
+                              <td style={{ padding: '10px 14px', verticalAlign: 'top', textAlign: 'right' }}>
+                                <p style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Avg opp rank beaten</p>
+                                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                                  {win.avgOppRankBeaten ? `#${win.avgOppRankBeaten}` : '—'}
+                                </p>
+                              </td>
+                            </tr>
+
+                            {/* WL bars + match rows — all in same tbody */}
+                            {wlFilter === 'rank' && win.rankBuckets.map(b => (
+                              <WLBarRows key={b.label} label={b.label} wins={b.wins} losses={b.losses} winPct={b.winPct}
+                                isOpen={openRankBar === b.label}
+                                onToggle={() => setOpenRankBar(openRankBar === b.label ? null : b.label)}>
+                                {b.matches.map((m, i) => <MatchRow key={i} match={m} />)}
+                              </WLBarRows>
+                            ))}
+
+                            {wlFilter === 'tier' && (
+                              win.tierBuckets.length === 0
+                                ? <tr><td colSpan={3} style={{ padding: 16, fontSize: 13, color: '#94a3b8' }}>No tier data in this window.</td></tr>
+                                : win.tierBuckets.map(b => (
+                                  <WLBarRows key={b.tier} label={b.label} wins={b.wins} losses={b.losses} winPct={b.winPct}
+                                    isOpen={openTierBar === b.tier}
+                                    onToggle={() => setOpenTierBar(openTierBar === b.tier ? null : b.tier)}>
+                                    {b.matches.map((m, i) => <MatchRow key={i} match={m} />)}
+                                  </WLBarRows>
+                                ))
+                            )}
+
+                            {wlFilter === 'competitor' && (
+                              win.topCompetitors.length === 0
+                                ? <tr><td colSpan={3} style={{ padding: 16, fontSize: 13, color: '#94a3b8' }}>No data in this window.</td></tr>
+                                : win.topCompetitors.map(c => (
+                                  <WLBarRows key={c.name}
+                                    label={`${c.name}${c.currentRank < 999 ? ` · #${c.currentRank}` : ''}`}
+                                    wins={c.wins} losses={c.losses} winPct={c.winPct}
+                                    isOpen={openCompBar === c.name}
+                                    onToggle={() => setOpenCompBar(openCompBar === c.name ? null : c.name)}>
+                                    {c.matches.map((m, i) => <MatchRow key={i} match={m} />)}
+                                  </WLBarRows>
+                                ))
+                            )}
+
+                            {wlFilter === 'nation' && (
+                              win.topNations.length === 0
+                                ? <tr><td colSpan={3} style={{ padding: 16, fontSize: 13, color: '#94a3b8' }}>No nation data in this window.</td></tr>
+                                : win.topNations.map(n => (
+                                  <WLBarRows key={n.country} label={n.country.toUpperCase()} wins={n.wins} losses={n.losses} winPct={n.winPct}
+                                    isOpen={openNationBar === n.country}
+                                    onToggle={() => setOpenNationBar(openNationBar === n.country ? null : n.country)}>
+                                    {n.matches.map((m, i) => <MatchRow key={i} match={m} />)}
+                                  </WLBarRows>
+                                ))
+                            )}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
+                  )}
 
-                    <div className="border border-slate-200 rounded-xl overflow-hidden divide-y divide-slate-100 bg-white">
-                      {recentDisplay.map((m, i) => {
-                        const isWin = m.result === 'W';
-                        const scoreStr = getMatchScoreStr(m.gamesWon, m.gamesLost);
-                        const games = parseDisplayGames(m.score, m.isComp1);
-                        return (
-                          <div key={i}>
+                  {/* ══ PERFORMANCE TAB ══ */}
+                  {activeTab === 'performance' && dna && (
+                    <div className="p-5 space-y-4 slide">
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs text-slate-500 font-medium">How do they perform under pressure?</p>
+                        <WindowToggle value={dnaWindow} onChange={v => { setDnaWindow(v); setOpenDna(null); }} />
+                      </div>
+
+                      <div className="flex items-center gap-2 pb-4 border-b border-slate-100">
+                        <span className="text-sm text-slate-600">Avg point diff per game</span>
+                        <span className={`text-sm font-bold ${
+                          dna.avgPtDiff > 0 ? 'text-emerald-600'
+                          : dna.avgPtDiff < 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                          {dna.avgPtDiff >= 0 ? '+' : ''}{dna.avgPtDiff.toFixed(2)}
+                        </span>
+                        <span className="text-xs text-slate-400">across {dna.matchCount} matches</span>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-xl overflow-hidden">
+                        {[
+                          { key: 'clutch',         label: 'Clutch index',         desc: 'Won in 4–5 game matches',       value: `${dna.clutchIndex.toFixed(1)}%`,   pctBase: null,       pctVal: null,                   pctLabel: null,        color: 'text-amber-600',   matches: dna.dnaGroups.clutch },
+                          { key: 'straightWins',   label: 'Straight sets wins',   desc: 'Dominated without dropping a game', value: `${dna.straightSetsWins}`,      pctBase: dna.wins,   pctVal: dna.straightSetsWins,   pctLabel: 'of wins',   color: 'text-emerald-600', matches: dna.dnaGroups.straightWins },
+                          { key: 'straightLosses', label: 'Straight sets losses', desc: 'Lost without winning a game',   value: `${dna.straightSetsLosses}`,        pctBase: dna.losses, pctVal: dna.straightSetsLosses, pctLabel: 'of losses', color: 'text-red-400',     matches: dna.dnaGroups.straightLosses },
+                          { key: 'comebacks',      label: 'Comeback wins',        desc: 'Won after losing game 1',       value: `${dna.comebackWins}`,              pctBase: dna.wins,   pctVal: dna.comebackWins,       pctLabel: 'of wins',   color: 'text-sky-600',     matches: dna.dnaGroups.comebacks },
+                        ].map((item, idx, arr) => (
+                          <div key={item.key} className={idx < arr.length - 1 ? 'border-b border-slate-100' : ''}>
                             <button
-                              onClick={() => setExpandedFormIdx(expandedFormIdx === i ? null : i)}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
-                                expandedFormIdx === i ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
-                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                isWin ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-400'}`}>
-                                {isWin ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-                              </div>
+                              onClick={() => setOpenDna(openDna === item.key ? null : item.key)}
+                              className={`w-full flex items-center px-4 py-3.5 text-left transition-colors ${
+                                openDna === item.key ? 'bg-blue-50/40' : 'hover:bg-slate-50'}`}>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-semibold text-slate-700 truncate">{m.opponent}</p>
-                                <p className="text-xs text-slate-400">
-                                  {m.opponentRank === 999 ? 'Unranked' : `#${m.opponentRank}`}
-                                  {m.opponentCountry && <span className="ml-1 uppercase">· {m.opponentCountry}</span>}
-                                  {' · '}{fmtMonthYear(m.rawDate)}
-                                </p>
+                                <span className="text-sm text-slate-800">{item.label}</span>
+                                <span className="text-xs text-slate-400 ml-2">{item.desc}</span>
                               </div>
-                              <div className="flex items-center gap-2 shrink-0">
-                                {m.isUpset    && <Star size={10} className="text-emerald-500" />}
-                                {m.isClutch   && <Zap  size={10} className="text-amber-400"  />}
-                                {m.isComeback && <span className="text-[9px] text-sky-500 font-bold">↩</span>}
-                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                                  isWin ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
-                                  {scoreStr}
-                                </span>
-                                {expandedFormIdx === i
-                                  ? <ChevronUp size={12} className="text-slate-400" />
-                                  : <ChevronDown size={12} className="text-slate-400" />}
+                              <div className="flex items-center gap-2.5 shrink-0">
+                                <span className={`text-base font-bold ${item.color}`}>{item.value}</span>
+                                {item.pctBase > 0 && (
+                                  <span className="text-xs text-slate-400">
+                                    {((item.pctVal / item.pctBase) * 100).toFixed(0)}% {item.pctLabel}
+                                  </span>
+                                )}
+                                {item.matches.length > 0
+                                  ? openDna === item.key
+                                    ? <ChevronUp size={13} className="text-slate-400" />
+                                    : <ChevronDown size={13} className="text-slate-400" />
+                                  : <span className="w-[13px]" />}
                               </div>
                             </button>
-
-                            {expandedFormIdx === i && (
-                              <div className="slide-down border-t border-slate-100 bg-slate-50/60 px-4 py-3 space-y-2">
-                                <div className="grid grid-cols-3 gap-3 text-xs">
-                                  <div>
-                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5">Competition</p>
-                                    <p className="font-medium text-slate-700">{cleanCompetitionName(m.tournament)}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5">Round</p>
-                                    <p className="font-medium text-slate-700">{m.round}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-0.5">Nation</p>
-                                    <p className="font-medium text-slate-700 uppercase">{m.opponentCountry || '—'}</p>
-                                  </div>
-                                </div>
-                                {games.length > 0 && (
-                                  <div>
-                                    <p className="text-[9px] text-slate-400 uppercase tracking-widest mb-1.5">Set Scores</p>
-                                    <div className="flex gap-1.5 flex-wrap">
-                                      {games.map((g, gi) => (
-                                        <span key={gi} className={`px-2 py-1 rounded text-xs font-bold ${
-                                          g.pWon ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-500'}`}>
-                                          {g.pScore}–{g.oScore}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
+                            {openDna === item.key && item.matches.length > 0 && (
+                              <div className="slide border-t border-slate-100 bg-slate-50/30">
+                                <MatchList matches={item.matches} />
                               </div>
                             )}
                           </div>
-                        );
-                      })}
-                      {recentAll.length === 0 && (
-                        <p className="text-sm text-slate-400 p-4">No matches found.</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ══ FORM TAB ══ */}
+                  {activeTab === 'form' && (
+                    <div className="slide">
+                      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+                        <p className="text-xs text-slate-500 font-medium">Recent form</p>
+                        <span className="text-xs text-slate-400">Last {recentDisplay.length} matches</span>
+                      </div>
+
+                      {recentAll.length === 0
+                        ? <p className="text-sm text-slate-400 px-5 py-4">No matches found.</p>
+                        : (
+                          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse' }}>
+                            <colgroup>
+                              <col style={{ width: '28%' }} />
+                              <col style={{ width: '40%' }} />
+                              <col style={{ width: '32%' }} />
+                            </colgroup>
+                            <tbody>
+                              {recentDisplay.map((m, i) => <MatchRow key={i} match={m} />)}
+                            </tbody>
+                          </table>
+                        )}
+
+                      {recentAll.length > 5 && (
+                        <div className="px-5 py-3 border-t border-slate-100">
+                          <button
+                            onClick={() => setFormShowAll(o => !o)}
+                            className="text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1">
+                            {formShowAll
+                              ? <><ChevronUp size={13} /> Show less</>
+                              : <><ChevronDown size={13} /> Show {Math.min(12, recentAll.length)} matches</>}
+                          </button>
+                        </div>
                       )}
                     </div>
+                  )}
 
-                    {recentAll.length > 5 && (
-                      <button
-                        onClick={() => { setFormShowAll(o => !o); setExpandedFormIdx(null); }}
-                        className="w-full py-2.5 rounded-xl border border-dashed border-slate-300 text-sm text-slate-400 hover:border-slate-400 hover:text-slate-600 transition-colors flex items-center justify-center gap-1.5">
-                        {formShowAll
-                          ? <><ChevronUp size={13} /> Show less</>
-                          : <><ChevronDown size={13} /> Show {Math.min(12, recentAll.length)} matches</>}
-                      </button>
-                    )}
-
-                    <p className="text-[10px] text-slate-400">
-                      <span className="text-emerald-500 font-semibold">★</span> Upset win &nbsp;·&nbsp;
-                      <span className="text-amber-500 font-semibold">⚡</span> Clutch (4–5 games) &nbsp;·&nbsp;
-                      <span className="text-sky-500 font-semibold">↩</span> Comeback
-                    </p>
-                  </div>
-                )}
-
+                </div>
               </div>
+
+              {/* Legend */}
+              <p className="text-[10px] text-slate-400 text-center pb-4">
+                <span className="text-emerald-500 font-semibold">★</span> Upset win &nbsp;·&nbsp;
+                <span className="text-amber-500 font-semibold">⚡</span> Clutch (4–5 games) &nbsp;·&nbsp;
+                <span className="text-sky-500 font-semibold">↩</span> Comeback
+              </p>
+
             </>
           )}
         </div>
