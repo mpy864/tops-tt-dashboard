@@ -92,21 +92,53 @@ function buildRankChartData(rankingHistory, windowMonths) {
     .filter(r => new Date(r.ranking_date) >= cutoff)
     .sort((a, b) => new Date(a.ranking_date) - new Date(b.ranking_date));
   if (!sorted.length) return [];
+
+  if (windowMonths === 6) {
+    // Weekly — use every entry, label as "Oct 28"
+    return sorted.map(r => ({
+      label: new Date(r.ranking_date).toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric'
+      }),
+      rank: r.rank,
+      points: r.points,
+    }));
+  }
+
+  if (windowMonths === 12) {
+    // Bi-weekly — keep one entry per 2-week block
+    const byBiweek = new Map();
+    for (const r of sorted) {
+      const d = new Date(r.ranking_date);
+      const weekOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 1)) / (14 * 24 * 60 * 60 * 1000));
+      const key = `${d.getFullYear()}-${weekOfYear}`;
+      byBiweek.set(key, r);
+    }
+    return [...byBiweek.values()].map(r => {
+      const d = new Date(r.ranking_date);
+      return {
+        label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        rank: r.rank,
+        points: r.points,
+      };
+    });
+  }
+
+  // 18M — monthly, quarter-start labels only
   const byMonth = new Map();
   for (const r of sorted) {
     const d = new Date(r.ranking_date);
-    byMonth.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`, r);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    byMonth.set(key, r);
   }
-  return [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([key, r]) => {
-    const [yr, mo] = key.split('-').map(Number);
-    let label = '';
-    if (windowMonths === 6) {
-      label = `${new Date(yr, mo - 1).toLocaleDateString('en-US', { month: 'short' })} '${String(yr).slice(2)}`;
-    } else {
-      label = Q_START.has(mo) ? `${Q_LABEL[mo]} '${String(yr).slice(2)}` : '';
-    }
-    return { label, rank: r.rank, points: r.points };
-  });
+  return [...byMonth.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, r]) => {
+      const [yr, mo] = key.split('-').map(Number);
+      const label = Q_START.has(mo)
+        ? `${Q_LABEL[mo]} '${String(yr).slice(2)}`
+        : '';
+      return { label, rank: r.rank, points: r.points };
+    });
 }
 
 function CustomXTick({ x, y, payload }) {
