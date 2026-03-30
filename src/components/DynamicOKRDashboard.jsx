@@ -94,48 +94,42 @@ function buildRankChartData(rankingHistory, windowMonths) {
   if (!sorted.length) return [];
 
   if (windowMonths === 6) {
-    // Weekly — use every entry, label as "Oct 28"
-    return sorted.map(r => ({
-      label: new Date(r.ranking_date).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric'
-      }),
-      rank: r.rank,
-      points: r.points,
-    }));
-  }
-
-  if (windowMonths === 12) {
-    // Bi-weekly — keep one entry per 2-week block
-    const byBiweek = new Map();
+    // Monthly — one entry per month, label every month e.g. "Oct 2025"
+    const byMonth = new Map();
     for (const r of sorted) {
       const d = new Date(r.ranking_date);
-      const weekOfYear = Math.floor((d - new Date(d.getFullYear(), 0, 1)) / (14 * 24 * 60 * 60 * 1000));
-      const key = `${d.getFullYear()}-${weekOfYear}`;
-      byBiweek.set(key, r);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      byMonth.set(key, r);
     }
-    return [...byBiweek.values()].map(r => {
-      const d = new Date(r.ranking_date);
-      return {
-        label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        rank: r.rank,
-        points: r.points,
-      };
-    });
+    return [...byMonth.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, r]) => {
+        const [yr, mo] = key.split('-').map(Number);
+        return {
+          label: new Date(yr, mo - 1).toLocaleDateString('en-US', {
+            month: 'short', year: 'numeric'
+          }),
+          rank: r.rank,
+          points: r.points,
+        };
+      });
   }
 
-  // 18M — monthly, quarter-start labels only
-  const byMonth = new Map();
+  // 12M and 18M — weekly data points for smooth line,
+  // but only label quarter-start months (Jan/Apr/Jul/Oct) as "Apr 2026"
+  const byWeek = new Map();
   for (const r of sorted) {
     const d = new Date(r.ranking_date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    byMonth.set(key, r);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    byWeek.set(key, r);
   }
-  return [...byMonth.entries()]
+  return [...byWeek.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([key, r]) => {
-      const [yr, mo] = key.split('-').map(Number);
+      const d = new Date(r.ranking_date);
+      const mo = d.getMonth() + 1;
       const label = Q_START.has(mo)
-        ? `${Q_LABEL[mo]} '${String(yr).slice(2)}`
+        ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
         : '';
       return { label, rank: r.rank, points: r.points };
     });
@@ -558,7 +552,7 @@ export default function DynamicOKRDashboard() {
           supabase.from('rankings_singles_normalized')
             .select('rank,ranking_date,points').eq('player_id', selectedPlayer)
             .order('ranking_date', { ascending: false }).limit(200),
-          supabase.from('wtt_events_graded').select('event_id,event_name,event_tier'),
+          supabase.from('wtt_events_graded').select('event_id,event_name,event_tier,tops_grade'),
           supabase.from('wtt_players').select('ittf_id,player_name,country_code'),
         ]);
         if (e1) throw e1; if (e2) throw e2; if (e3) throw e3; if (e4) throw e4;
@@ -604,7 +598,7 @@ export default function DynamicOKRDashboard() {
         opponentCountry: oppP?.country_code || null,
         opponentRank, opponentCurrentRank,
         tournament: events?.find(e => e.event_id === m.event_id)?.event_name || 'Unknown',
-        eventTier:  events?.find(e => e.event_id === m.event_id)?.event_tier ?? null,
+        eventTier: events?.find(e => e.event_id === m.event_id)?.tops_grade ?? null,
         round: m.round_phase || 'N/A',
         score: m.game_scores || 'N/A',
         result: won ? 'W' : 'L',
