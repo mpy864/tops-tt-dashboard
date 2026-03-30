@@ -526,7 +526,7 @@ export default function DynamicOKRDashboard() {
           supabase.from('rankings_singles_normalized')
             .select('rank,ranking_date,points').eq('player_id', selectedPlayer)
             .order('ranking_date', { ascending: false }).limit(200),
-          supabase.from('wtt_events').select('event_id,event_name,event_tier'),
+          supabase.from('wtt_events_graded').select('event_id,event_name,event_tier'),
           supabase.from('wtt_players').select('ittf_id,player_name,country_code'),
         ]);
         if (e1) throw e1; if (e2) throw e2; if (e3) throw e3; if (e4) throw e4;
