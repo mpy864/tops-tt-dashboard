@@ -1,0 +1,422 @@
+"""
+fetch_matches.py
+Auto-discovers WTT events from the last 14 days via the event calendar API.
+Fetches match results for any event not yet fully loaded in Supabase.
+Runs daily via GitHub Actions.
+"""
+
+import os
+import time
+import requests
+from datetime import date, timedelta
+from supabase import create_client, Client
+
+# ─── Config ───────────────────────────────────────────────────────────────────
+
+SUPABASE_URL = os.environ["SUPABASE_URL"]
+SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+
+# All 2026 WTT + ITTF + Youth events
+# Source: WTT event calendar API response, extracted 2026-03-31
+WTT_2026_EVENT_IDS = {
+    # ── Senior WTT Series ──────────────────────────────────────────
+    3231: ("WTT Champions Doha 2026",              "2026-01-11"),
+    3232: ("WTT Star Contender Doha 2026",         "2026-01-18"),
+    3251: ("WTT Contender Muscat 2026",            "2026-01-24"),
+    3353: ("WTT Feeder Vadodara 2026",             "2026-01-11"),
+    3354: ("WTT Feeder Doha 2026",                 "2026-01-31"),
+    3355: ("WTT Feeder Lille 2026",                "2026-01-31"),
+    3266: ("WTT Feeder Cappadocia 2026",           "2026-02-06"),
+    3233: ("WTT Star Contender Chennai 2026",      "2026-02-15"),
+    3234: ("Singapore Smash 2026",                 "2026-03-01"),
+    3267: ("WTT Feeder Düsseldorf 2026",           "2026-03-06"),
+    3268: ("WTT Feeder Otocec 2026",               "2026-03-11"),
+    3235: ("WTT Champions Chongqing 2026",         "2026-03-15"),
+    3356: ("WTT Feeder Varazdin 2026",             "2026-03-16"),
+    3236: ("WTT Contender Tunis 2026",             "2026-03-29"),
+    3373: ("WTT Feeder Cappadocia II 2026",        "2026-04-11"),
+    3237: ("WTT Contender Taiyuan 2026",           "2026-04-12"),
+    3270: ("WTT Feeder Havirov 2026",              "2026-04-17"),
+    3357: ("WTT Feeder Senec 2026",                "2026-04-22"),
+    3358: ("WTT Feeder Istanbul 2026",             "2026-05-14"),
+    3360: ("WTT Feeder Lagos 2026",                "2026-05-19"),
+    3238: ("WTT Contender Lagos 2026",             "2026-05-24"),
+    3361: ("WTT Feeder Hennebont 2026",            "2026-05-24"),
+    3271: ("WTT Feeder Prishtina 2026",            "2026-05-31"),
+    3239: ("WTT Contender Skopje 2026",            "2026-06-07"),
+    3240: ("WTT Contender Zagreb 2026",            "2026-06-14"),
+    3241: ("WTT Star Contender Ljubljana 2026",    "2026-06-21"),
+    3242: ("United States Smash 2026",             "2026-07-05"),
+    3359: ("WTT Feeder Istanbul II 2026",          "2026-07-05"),
+    3363: ("WTT Feeder Asunción 2026",             "2026-07-12"),
+    3243: ("WTT Contender Buenos Aires 2026",      "2026-07-19"),
+    3364: ("WTT Feeder Ulaanbaatar 2026",          "2026-07-23"),
+    3244: ("WTT Star Contender Brazil 2026",       "2026-07-26"),
+    3365: ("WTT Feeder Tashkent 2026",             "2026-07-28"),
+    3372: ("WTT Feeder Tunis 2026",                "2026-08-02"),
+    3272: ("WTT Feeder Vientiane 2026",            "2026-08-08"),
+    3245: ("WTT Champions Yokohama 2026",          "2026-08-09"),
+    3246: ("Europe Smash Sweden 2026",             "2026-08-16"),
+    3374: ("WTT Feeder Berlin 2026",               "2026-08-23"),
+    3282: ("WTT Feeder Olomouc 2026",              "2026-08-28"),
+    3247: ("WTT Contender Almaty 2026",            "2026-09-06"),
+    3415: ("WTT Feeder Puerto Princesa 2026",      "2026-09-12"),
+    3253: ("WTT Contender Panagyurishte 2026",     "2026-09-13"),
+    3248: ("WTT Champions Macao 2026",             "2026-09-13"),
+    3371: ("WTT Feeder Bangkok 2026",              "2026-09-18"),
+    3254: ("WTT Star Contender London 2026",       "2026-09-20"),
+    3375: ("WTT Feeder Linz 2026",                 "2026-09-27"),
+    3283: ("WTT Feeder Doha II 2026",              "2026-10-11"),
+    3249: ("China Smash 2026",                     "2026-10-11"),
+    3250: ("WTT Champions Montpellier 2026",       "2026-11-01"),
+    3376: ("WTT Feeder Chennai 2026",              "2026-11-01"),
+    3252: ("WTT Champions Frankfurt 2026",         "2026-11-08"),
+    3370: ("WTT Feeder Vila Nova de Gaia 2026",    "2026-11-08"),
+    3257: ("WTT Contender Istanbul 2026",          "2026-11-15"),
+    3256: ("WTT Star Contender Muscat 2026",       "2026-11-21"),
+    3352: ("WTT Feeder Düsseldorf II 2026",        "2026-11-27"),
+    3269: ("WTT Feeder Gdansk 2026",               "2026-12-02"),
+    3255: ("WTT Finals Hong Kong 2026",            "2026-12-13"),
+    # ── ITTF Major Events ─────────────────────────────────────────
+    3379: ("ITTF World Cup Macao 2026",            "2026-04-05"),
+    3216: ("ITTF World Team Championships 2026",   "2026-05-10"),
+    3377: ("ITTF World Youth Championships 2026",  "2026-11-28"),
+    3378: ("ITTF Mixed Team World Cup 2026",       "2026-12-06"),
+    # ── WTT Youth Series ──────────────────────────────────────────
+    3273: ("WTT Youth Contender Vadodara 2026",    "2026-01-05"),
+    3274: ("WTT Youth Contender San Francisco 2026","2026-01-05"),
+    3275: ("WTT Youth Contender Linz 2026",        "2026-01-11"),
+    3276: ("WTT Youth Contender Manama 2026",      "2026-01-17"),
+    3278: ("WTT Youth Contender Doha 2026",        "2026-01-22"),
+    3277: ("WTT Youth Star Contender Doha 2026",   "2026-01-25"),
+    3279: ("WTT Youth Contender Cappadocia 2026",  "2026-01-31"),
+    3280: ("WTT Youth Contender Tunis 2026",       "2026-02-05"),
+    3281: ("WTT Youth Star Contender Tunis 2026",  "2026-02-08"),
+    3284: ("WTT Youth Contender Vila Real 2026",   "2026-02-13"),
+    3285: ("Singapore Youth Smash 2026",           "2026-03-01"),
+    3286: ("WTT Youth Contender Buenos Aires 2026","2026-03-07"),
+    3291: ("WTT Youth Contender Wladyslawowo 2026","2026-03-07"),
+    3292: ("WTT Youth Contender Asunción 2026",    "2026-03-12"),
+    3293: ("WTT Youth Contender Berlin 2026",      "2026-03-15"),
+    3294: ("WTT Youth Contender Havirov 2026",     "2026-03-15"),
+    3316: ("WTT Youth Contender Houston 2026",     "2026-03-23"),
+    3296: ("WTT Youth Contender Panagyurishte 2026","2026-03-29"),
+    3299: ("WTT Youth Contender Humacao 2026",     "2026-03-29"),
+    3297: ("WTT Youth Contender Novi Sad 2026",    "2026-04-03"),
+    3298: ("WTT Youth Contender Luxembourg 2026",  "2026-04-11"),
+    3301: ("WTT Youth Contender Metz 2026",        "2026-04-16"),
+    3302: ("WTT Youth Star Contender Metz 2026",   "2026-04-19"),
+    3304: ("WTT Youth Contender Sarajevo 2026",    "2026-04-30"),
+    3305: ("WTT Youth Contender Platja D'Aro 2026","2026-05-08"),
+    3307: ("WTT Youth Contender Mississauga 2026", "2026-05-18"),
+    3308: ("WTT Youth Contender Bangkok 2026",     "2026-05-21"),
+    3320: ("WTT Youth Contender Tashkent 2026",    "2026-05-16"),
+    3306: ("WTT Youth Star Contender Bangkok 2026","2026-05-24"),
+    3309: ("WTT Youth Contender Prishtina 2026",   "2026-05-25"),
+    3478: ("WTT Youth Contender San Francisco II 2026","2026-05-25"),
+    3310: ("WTT Youth Contender Sandefjord 2026",  "2026-06-02"),
+    3311: ("WTT Youth Contender Helsingborg 2026", "2026-06-07"),
+    3312: ("WTT Youth Contender São José 2026",    "2026-06-11"),
+    3313: ("WTT Youth Star Contender São José 2026","2026-06-14"),
+    3315: ("WTT Youth Contender Caracas 2026",     "2026-06-27"),
+    3318: ("WTT Youth Contender Hong Kong 2026",   "2026-07-12"),
+    3319: ("WTT Youth Contender Ulaanbaatar 2026", "2026-07-17"),
+    3366: ("WTT Youth Contender Tashkent II 2026", "2026-07-22"),
+    3321: ("WTT Youth Contender Almaty 2026",      "2026-07-27"),
+    3322: ("WTT Youth Contender Vientiane 2026",   "2026-08-02"),
+    3323: ("WTT Youth Contender Amman 2026",       "2026-08-08"),
+    3480: ("WTT Youth Contender Spokane 2026",     "2026-08-09"),
+    3479: ("WTT Youth Contender San Francisco III 2026","2026-07-26"),
+    3326: ("WTT Youth Contender Varazdin 2026",    "2026-08-31"),
+    3328: ("WTT Youth Contender Otocec 2026",      "2026-08-31"),
+    3314: ("WTT Youth Contender Tunis II 2026",    "2026-09-06"),
+    3332: ("WTT Youth Contender Cuenca 2026",      "2026-09-06"),
+    3350: ("WTT Youth Contender Puerto Princesa 2026","2026-09-06"),
+    3337: ("WTT Youth Contender Medellín 2026",    "2026-09-12"),
+    3331: ("WTT Youth Contender Bangkok II 2026",  "2026-09-12"),
+    3330: ("WTT Youth Contender Gangneung 2026",   "2026-09-17"),
+    3329: ("WTT Youth Star Contender Gangneung 2026","2026-09-20"),
+    3334: ("WTT Youth Contender Spa 2026",         "2026-09-24"),
+    3333: ("WTT Youth Contender Batumi 2026",      "2026-09-30"),
+    3367: ("WTT Youth Contender Asunción II 2026", "2026-09-30"),
+    3347: ("WTT Youth Contender Cairo 2026",       "2026-10-05"),
+    3368: ("WTT Youth Contender Buenos Aires II 2026","2026-10-05"),
+    3336: ("WTT Youth Contender Doha II 2026",     "2026-10-16"),
+    3340: ("WTT Youth Contender Dubai 2026",       "2026-10-21"),
+    3481: ("WTT Youth Contender Fort Lauderdale 2026","2026-10-21"),
+    3338: ("WTT Youth Contender Lignano 2026",     "2026-10-27"),
+    3339: ("WTT Youth Contender Senec 2026",       "2026-10-27"),
+    3369: ("WTT Youth Contender Chennai 2026",     "2026-10-26"),
+    3344: ("WTT Youth Contender Szombathely 2026", "2026-11-01"),
+    3345: ("WTT Youth Contender Podgorica 2026",   "2026-11-06"),
+    3346: ("WTT Youth Star Contender Podgorica 2026","2026-11-09"),
+    3482: ("WTT Youth Contender Gaborone 2026",    "2026-11-14"),
+    3469: ("WTT Youth Contender Perth 2026",       "2026-11-18"),
+}
+RESULTS_URL = (
+    "https://wtt-website-live-events-api-prod-cmfzgabgbzhphabb.eastasia-01"
+    ".azurewebsites.net/api/cms/GetOfficialResult"
+)
+
+COMMON_HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept":     "application/json",
+    "Referer":    "https://worldtabletennis.com/",
+}
+
+LOOKBACK_DAYS = 14     # fetch events that ended in the last N days
+SLEEP_EVENT   = 2.0    # seconds between event fetches
+
+# ─── Event Discovery ──────────────────────────────────────────────────────────
+
+def get_recent_event_ids(lookback_days: int = LOOKBACK_DAYS) -> list[dict]:
+    """
+    Return events whose end date falls within the lookback window.
+    Reads from the hardcoded WTT_2026_EVENT_IDS dict — no API call needed.
+    """
+    today  = date.today()
+    cutoff = today - timedelta(days=lookback_days)
+
+    recent = []
+    for event_id, (event_name, end_date_str) in WTT_2026_EVENT_IDS.items():
+        try:
+            end_date = date.fromisoformat(end_date_str)
+        except ValueError:
+            continue
+        if cutoff <= end_date <= today:
+            recent.append({
+                "event_id":   event_id,
+                "event_name": event_name,
+                "start_date": None,
+                "end_date":   end_date_str,
+            })
+
+    return recent
+
+
+def events_needing_fetch(supabase: Client,
+                          recent: list[dict]) -> list[dict]:
+    """
+    Filter to events that have no matches in wtt_matches_singles yet.
+    Also ensures event exists in wtt_events table.
+    """
+    needs_fetch = []
+    for ev in recent:
+        eid = ev["event_id"]
+        if not eid:
+            continue
+
+        # Check match count
+        result = (
+            supabase.table("wtt_matches_singles")
+            .select("match_id", count="exact")
+            .eq("event_id", eid)
+            .limit(1)
+            .execute()
+        )
+        if (result.count or 0) == 0:
+            needs_fetch.append(ev)
+            print(f"  [New] {ev['event_name']} (id:{eid}) — no matches yet")
+        else:
+            print(f"  [OK]  {ev['event_name']} (id:{eid}) — {result.count} matches exist")
+
+    return needs_fetch
+
+
+# ─── Match Fetching ───────────────────────────────────────────────────────────
+
+def fetch_event_matches(event_id: int) -> list[dict]:
+    """
+    Fetch and parse all match results for one event.
+    Returns list of match dicts ready for Supabase upsert.
+    """
+    params = {
+        "EventId":           event_id,
+        "include_match_card": "true",
+        "take":               1000,
+    }
+    resp = requests.get(RESULTS_URL, params=params,
+                        headers=COMMON_HEADERS, timeout=25)
+    if resp.status_code != 200:
+        print(f"  [!] HTTP {resp.status_code} for event {event_id}")
+        return []
+
+    data    = resp.json()
+    matches = data.get("Data", data) if isinstance(data, dict) else data
+    if not matches:
+        return []
+
+    records = []
+    for team_tie in matches:
+        if not isinstance(team_tie, dict):
+            continue
+        root_card = team_tie.get("match_card") or {}
+
+        # Handle team events (nested individual matches)
+        team_parent       = root_card.get("teamParentData") or {}
+        extended          = team_parent.get("extended_info") or {}
+        individual_matches = extended.get("matches") or []
+
+        to_process = [
+            tm.get("match_result")
+            for tm in individual_matches
+            if tm.get("match_result")
+        ]
+        if not to_process and root_card:
+            to_process = [root_card]
+
+        for m_card in to_process:
+            if not m_card or not m_card.get("competitiors"):
+                continue
+
+            comps = m_card.get("competitiors")
+            if len(comps) < 2:
+                continue
+
+            c1, c2 = comps[0], comps[1]
+            record = parse_match(m_card, c1, c2, event_id)
+            if record:
+                records.append(record)
+
+    return records
+
+
+def parse_match(m_card: dict, c1: dict, c2: dict,
+                event_id: int) -> dict | None:
+    """Parse a single match card into a Supabase row."""
+    comp1_id_raw = c1.get("competitiorId") or c1.get("competitorId") or ""
+    comp2_id_raw = c2.get("competitiorId") or c2.get("competitorId") or ""
+
+    # Skip team-level entries (IDs like "100207276") and doubles pairs ("121558_131163")
+    # Only process singles matches — IDs must be plain integers
+    if "_" in str(comp1_id_raw) or "_" in str(comp2_id_raw):
+        return None
+    try:
+        comp1_id = int(comp1_id_raw)
+        comp2_id = int(comp2_id_raw)
+    except (ValueError, TypeError):
+        return None
+
+    # Use gameScores directly — already formatted as "11-4,11-4,11-6"
+    game_scores = m_card.get("gameScores") or m_card.get("resultsGameScores")
+
+    # Filter out placeholder scores (walkovers, unplayed sets)
+    if game_scores:
+        clean_games = []
+        for g in game_scores.split(","):
+            parts = g.strip().split("-")
+            if len(parts) == 2:
+                a, b = parts[0].strip(), parts[1].strip()
+                if a.isdigit() and b.isdigit():
+                    if not (a == "7" and b == "0") and \
+                       not (a == "0" and b == "7") and \
+                       not (a == "0" and b == "0"):
+                        clean_games.append(f"{a}-{b}")
+        game_scores = ",".join(clean_games) if clean_games else None
+
+    # comp1/comp2 individual scores (e.g. "11,11,6")
+    comp1_scores = c1.get("scores") if c1.get("scores") else None
+    comp2_scores = c2.get("scores") if c2.get("scores") else None
+    if isinstance(comp1_scores, list):
+        comp1_scores = ",".join(str(x) for x in comp1_scores)
+    if isinstance(comp2_scores, list):
+        comp2_scores = ",".join(str(x) for x in comp2_scores)
+
+    # Overall match score e.g. "3-0"
+    match_score = m_card.get("overallScores") or m_card.get("resultOverallScores")
+
+    # Result from comp1 perspective
+    result = None
+    if match_score:
+        parts = match_score.split("-")
+        if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+            result = "W" if int(parts[0]) > int(parts[1]) else "L"
+
+    # Parse event date from matchDateTime.startDateLocal = "12/07/2025 19:00:00"
+    event_date = None
+    match_dt = m_card.get("matchDateTime") or {}
+    date_str = match_dt.get("startDateLocal") or match_dt.get("startDateUTC")
+    if date_str:
+        try:
+            from datetime import datetime
+            dt = datetime.strptime(date_str, "%m/%d/%Y %H:%M:%S")
+            event_date = dt.strftime("%Y-%m-%d")
+        except ValueError:
+            event_date = date_str[:10] if date_str else None
+
+    # Use documentCode as match_id (more reliable than matchId)
+    match_id = m_card.get("documentCode") or m_card.get("matchId") or m_card.get("id")
+
+    return {
+        "match_id":       match_id,
+        "event_id":       event_id,
+        "event_category": m_card.get("subEventName"),
+        "round_phase":    m_card.get("subEventDescription"),
+        "comp1_id":       comp1_id,
+        "comp2_id":       comp2_id,
+        "comp1_scores":   comp1_scores,
+        "comp2_scores":   comp2_scores,
+        "match_score":    match_score,
+        "game_scores":    game_scores,
+        "result":         result,
+        "event_date":     event_date,
+        "last_updated":   "now()",
+    }
+
+
+def ensure_event_in_db(supabase: Client, ev: dict) -> None:
+    """Insert event into wtt_events if not already present."""
+    supabase.table("wtt_events").upsert({
+        "event_id":         ev["event_id"],
+        "event_name":       ev["event_name"],
+        "event_start_date": ev["start_date"] or None,
+    }, on_conflict="event_id").execute()
+
+
+# ─── Main ─────────────────────────────────────────────────────────────────────
+
+def main():
+    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+    print(f"[Matches] Discovering events from last {LOOKBACK_DAYS} days...")
+    recent = get_recent_event_ids(LOOKBACK_DAYS)
+    print(f"[Matches] Found {len(recent)} recent events.")
+
+    to_fetch = events_needing_fetch(supabase, recent)
+    print(f"[Matches] {len(to_fetch)} events need fetching.")
+
+    total_upserted = 0
+
+    for ev in to_fetch:
+        eid  = ev["event_id"]
+        name = ev["event_name"]
+        print(f"\n  Fetching: {name} (id:{eid})...")
+
+        # Ensure event row exists
+        ensure_event_in_db(supabase, ev)
+
+        matches = fetch_event_matches(eid)
+        print(f"  Parsed {len(matches)} matches.")
+
+        if not matches:
+            print(f"  [!] No matches returned — skipping.")
+            time.sleep(SLEEP_EVENT)
+            continue
+
+        # Upsert in batches of 500
+        for i in range(0, len(matches), 500):
+            chunk = [m for m in matches[i:i+500] if m]
+            if chunk:
+                supabase.table("wtt_matches_singles").upsert(
+                    chunk, on_conflict="match_id"
+                ).execute()
+
+        total_upserted += len(matches)
+        print(f"  Upserted {len(matches)} matches for {name}.")
+        time.sleep(SLEEP_EVENT)
+
+    print(f"\n[Matches] Done. Total matches upserted: {total_upserted}")
+
+
+if __name__ == "__main__":
+    main()
