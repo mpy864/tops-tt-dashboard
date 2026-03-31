@@ -94,25 +94,18 @@ function buildRankChartData(rankingHistory, windowMonths) {
   if (!sorted.length) return [];
 
   if (windowMonths === 6) {
-    // Monthly — one entry per month, label every month e.g. "Oct 2025"
-    const byMonth = new Map();
-    for (const r of sorted) {
+    // Weekly data points for smooth continuous line
+    // Labels only on month-start weeks — "Oct 2025", "Nov 2025" etc.
+    return sorted.map(r => {
       const d = new Date(r.ranking_date);
-      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-      byMonth.set(key, r);
-    }
-    return [...byMonth.entries()]
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, r]) => {
-        const [yr, mo] = key.split('-').map(Number);
-        return {
-          label: new Date(yr, mo - 1).toLocaleDateString('en-US', {
-            month: 'short', year: 'numeric'
-          }),
-          rank: r.rank,
-          points: r.points,
-        };
-      });
+      const mo = d.getMonth() + 1;
+      const day = d.getDate();
+      // Label only on first entry of each month (day <= 7)
+      const label = day <= 7
+        ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+        : '';
+      return { label, rank: r.rank, points: r.points };
+    });
   }
 
   // 12M and 18M — weekly data points for smooth line,
