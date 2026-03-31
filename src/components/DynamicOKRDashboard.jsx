@@ -88,7 +88,8 @@ const Q_START = new Set([1, 4, 7, 10]);
 const Q_LABEL = { 1: 'Jan', 4: 'Apr', 7: 'Jul', 10: 'Oct' };
 
 function buildRankChartData(rankingHistory, windowMonths) {
-  const cutoff = new Date(Date.now() - windowMonths * 30 * 24 * 60 * 60 * 1000);
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - windowMonths);
   const sorted = [...rankingHistory]
     .filter(r => new Date(r.ranking_date) >= cutoff)
     .sort((a, b) => new Date(a.ranking_date) - new Date(b.ranking_date));
@@ -131,7 +132,8 @@ function CustomXTick({ x, y, payload }) {
 // ─── Window computation ────────────────────────────────────────────────────────
 
 function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurrentRank) {
-  const cutoff   = new Date(Date.now() - windowMonths * 30 * 24 * 60 * 60 * 1000);
+  const cutoff = new Date();
+  cutoff.setMonth(cutoff.getMonth() - windowMonths);
   const filtered = matchLedger.filter(m => m.rawDate >= cutoff);
   const wins     = filtered.filter(m => m.result === 'W');
   const losses   = filtered.filter(m => m.result === 'L');
@@ -557,8 +559,9 @@ export default function DynamicOKRDashboard() {
 
         const oppRankMap = {};
         for (const r of (oppRanks || [])) {
-          if (!oppRankMap[r.player_id]) oppRankMap[r.player_id] = [];
-          oppRankMap[r.player_id].push(r);
+          const key = String(r.player_id);
+          if (!oppRankMap[key]) oppRankMap[key] = [];
+          oppRankMap[key].push(r);
         }
         setPlayerMetrics(buildMetrics(matches, rankings, events, allPlayers, oppRankMap, selectedPlayer));
       } catch (err) { setError(err.message); }
@@ -572,8 +575,8 @@ export default function DynamicOKRDashboard() {
       const isComp1 = m.comp1_id === playerId;
       const won     = isComp1 ? m.result === 'W' : m.result === 'L';
       const oppId   = isComp1 ? m.comp2_id : m.comp1_id;
-      const oppP    = allPlayers?.find(p => p.ittf_id === oppId);
-      const oppH    = oppRankMap[oppId] || [];
+      const oppP    = allPlayers?.find(p => String(p.ittf_id) === String(oppId));
+      const oppH    = oppRankMap[String(oppId)] || [];
       const matchDate = new Date(m.event_date);
       const opponentRank        = oppH.find(r => new Date(r.ranking_date) <= matchDate)?.rank ?? 999;
       const opponentCurrentRank = oppH[0]?.rank ?? 999;
