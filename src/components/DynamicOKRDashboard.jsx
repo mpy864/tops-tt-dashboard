@@ -24,6 +24,7 @@ function parseScoresForPlayer(str, isComp1) {
   for (const g of str.split(',').map(s => s.trim())) {
     const [a, b] = g.split('-').map(Number);
     if (isNaN(a) || isNaN(b)) continue;
+    if (a === 0 && b === 0) continue; // skip unplayed sets
     const [p, o] = isComp1 ? [a, b] : [b, a];
     pW += p; pL += o;
     if (p > o) gW++; else gL++;
@@ -540,7 +541,7 @@ export default function DynamicOKRDashboard() {
             .select('rank,ranking_date,points').eq('player_id', selectedPlayer)
             .order('ranking_date', { ascending: false }).limit(200),
           supabase.from('wtt_events_graded').select('event_id,event_name,event_tier,tops_grade'),
-          supabase.from('wtt_players').select('ittf_id,player_name,country_code'),
+          supabase.from('wtt_players').select('ittf_id,player_name,country_code').limit(10000),
         ]);
         if (e1) throw e1; if (e2) throw e2; if (e3) throw e3; if (e4) throw e4;
 
