@@ -547,7 +547,9 @@ export default function DynamicOKRDashboard() {
 
         const pid = parseInt(selectedPlayer);
         const oppIds = [...new Set(
-          (matches || []).map(m => m.comp1_id === pid ? m.comp2_id : m.comp1_id)
+          (matches || []).map(m =>
+            parseInt(m.comp1_id) === pid ? parseInt(m.comp2_id) : parseInt(m.comp1_id)
+          )
         )];
 
         // Fetch only the opponent players needed — avoids bulk 3000-row fetch
@@ -565,7 +567,7 @@ export default function DynamicOKRDashboard() {
 
         const oppRankMap = {};
         for (const r of (oppRanks || [])) {
-          const key = String(r.player_id);
+          const key = parseInt(r.player_id);
           if (!oppRankMap[key]) oppRankMap[key] = [];
           oppRankMap[key].push(r);
         }
@@ -581,9 +583,9 @@ export default function DynamicOKRDashboard() {
     const matchLedger = (matches || []).map(m => {
       const isComp1 = parseInt(m.comp1_id) === pid;
       const won     = isComp1 ? m.result === 'W' : m.result === 'L';
-      const oppId   = isComp1 ? m.comp2_id : m.comp1_id;
-      const oppP    = allPlayers?.find(p => String(p.ittf_id) === String(oppId));
-      const oppH    = oppRankMap[String(oppId)] || [];
+      const oppId   = parseInt(isComp1 ? m.comp2_id : m.comp1_id);
+      const oppP    = allPlayers?.find(p => parseInt(p.ittf_id) === oppId);
+      const oppH    = oppRankMap[oppId] || [];
       const matchDate = new Date(m.event_date);
       const opponentRank        = oppH.find(r => new Date(r.ranking_date) <= matchDate)?.rank ?? 999;
       const opponentCurrentRank = oppH[0]?.rank ?? 999;
