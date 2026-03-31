@@ -547,8 +547,9 @@ export default function DynamicOKRDashboard() {
         ]);
         if (e1) throw e1; if (e2) throw e2; if (e3) throw e3; if (e4) throw e4;
 
+        const pid = parseInt(selectedPlayer);
         const oppIds = [...new Set(
-          (matches || []).map(m => m.comp1_id === selectedPlayer ? m.comp2_id : m.comp1_id)
+          (matches || []).map(m => m.comp1_id === pid ? m.comp2_id : m.comp1_id)
         )];
         const { data: oppRanks, error: e5 } = await supabase
           .from('rankings_singles_normalized')
@@ -559,9 +560,9 @@ export default function DynamicOKRDashboard() {
 
         const oppRankMap = {};
         for (const r of (oppRanks || [])) {
-          const key = String(r.player_id);
-          if (!oppRankMap[key]) oppRankMap[key] = [];
-          oppRankMap[key].push(r);
+        const key = String(r.player_id);
+        if (!oppRankMap[key]) oppRankMap[key] = [];
+        oppRankMap[key].push(r);
         }
         setPlayerMetrics(buildMetrics(matches, rankings, events, allPlayers, oppRankMap, selectedPlayer));
       } catch (err) { setError(err.message); }
@@ -570,9 +571,10 @@ export default function DynamicOKRDashboard() {
   }, [selectedPlayer]);
 
   function buildMetrics(matches, rankings, events, allPlayers, oppRankMap, playerId) {
-    const playerCurrentRank = rankings?.[0]?.rank || 999;
-    const matchLedger = (matches || []).map(m => {
-      const isComp1 = m.comp1_id === playerId;
+   const pid = parseInt(playerId);
+   const playerCurrentRank = rankings?.[0]?.rank || 999;
+   const matchLedger = (matches || []).map(m => {
+      const isComp1 = parseInt(m.comp1_id) === pid;
       const won     = isComp1 ? m.result === 'W' : m.result === 'L';
       const oppId   = isComp1 ? m.comp2_id : m.comp1_id;
       const oppP    = allPlayers?.find(p => String(p.ittf_id) === String(oppId));
