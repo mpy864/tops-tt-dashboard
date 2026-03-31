@@ -608,7 +608,7 @@ export default function DynamicOKRDashboard() {
         result: won ? 'W' : 'L',
         isComp1,
         isUpset:       won && opponentRank < playerCurrentRank,
-        isClutch:      won && totalGames >= 4,
+        isClutch:      won && gamesLost === gamesWon - 1,
         isStraightWin: won && gamesLost === 0 && totalGames >= 3,
         isStraightLoss:!won && gamesWon === 0 && totalGames >= 3,
         isComeback:    checkComeback(m.game_scores, isComp1, won),
@@ -1023,7 +1023,7 @@ export default function DynamicOKRDashboard() {
 
                       <div className="border border-slate-200 rounded-xl overflow-hidden">
                         {[
-                          { key: 'clutch',         label: 'Clutch index',         desc: 'Won in 4–5 game matches',       value: `${dna.clutchIndex.toFixed(1)}%`,   pctBase: null,       pctVal: null,                   pctLabel: null,        color: 'text-amber-600',   matches: dna.dnaGroups.clutch },
+                          { key: 'clutch',         label: 'Clutch index',         desc: 'Won on the deciding set',       value: `${dna.clutchIndex.toFixed(1)}%`,   pctBase: null,       pctVal: null,                   pctLabel: null,        color: 'text-amber-600',   matches: dna.dnaGroups.clutch },
                           { key: 'straightWins',   label: 'Straight sets wins',   desc: 'Dominated without dropping a game', value: `${dna.straightSetsWins}`,      pctBase: dna.wins,   pctVal: dna.straightSetsWins,   pctLabel: 'of wins',   color: 'text-emerald-600', matches: dna.dnaGroups.straightWins },
                           { key: 'straightLosses', label: 'Straight sets losses', desc: 'Lost without winning a game',   value: `${dna.straightSetsLosses}`,        pctBase: dna.losses, pctVal: dna.straightSetsLosses, pctLabel: 'of losses', color: 'text-red-400',     matches: dna.dnaGroups.straightLosses },
                           { key: 'comebacks',      label: 'Comeback wins',        desc: 'Won after losing game 1',       value: `${dna.comebackWins}`,              pctBase: dna.wins,   pctVal: dna.comebackWins,       pctLabel: 'of wins',   color: 'text-sky-600',     matches: dna.dnaGroups.comebacks },
@@ -1105,7 +1105,7 @@ export default function DynamicOKRDashboard() {
               {/* Legend */}
               <p className="text-[10px] text-slate-400 text-center pb-4">
                 <span className="text-emerald-500 font-semibold">★</span> Upset win &nbsp;·&nbsp;
-                <span className="text-amber-500 font-semibold">⚡</span> Clutch (4–5 games) &nbsp;·&nbsp;
+                <span className="text-amber-500 font-semibold">⚡</span> Clutch (deciding set) &nbsp;·&nbsp;
                 <span className="text-sky-500 font-semibold">↩</span> Comeback
               </p>
 
