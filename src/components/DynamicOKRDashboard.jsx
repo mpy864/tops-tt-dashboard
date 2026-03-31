@@ -533,7 +533,6 @@ export default function DynamicOKRDashboard() {
           { data: matches,    error: e1 },
           { data: rankings,   error: e2 },
           { data: events,     error: e3 },
-          { data: allPlayers, error: e4 },
         ] = await Promise.all([
           supabase.from('wtt_matches_singles')
             .select('match_id,comp1_id,comp2_id,result,event_date,event_id,round_phase,game_scores')
@@ -543,14 +542,20 @@ export default function DynamicOKRDashboard() {
             .select('rank,ranking_date,points').eq('player_id', selectedPlayer)
             .order('ranking_date', { ascending: false }).limit(200),
           supabase.from('wtt_events_graded').select('event_id,event_name,event_tier,tops_grade'),
-          supabase.from('wtt_players').select('ittf_id,player_name,country_code').limit(10000),
         ]);
-        if (e1) throw e1; if (e2) throw e2; if (e3) throw e3; if (e4) throw e4;
+        if (e1) throw e1; if (e2) throw e2; if (e3) throw e3;
 
         const pid = parseInt(selectedPlayer);
         const oppIds = [...new Set(
           (matches || []).map(m => m.comp1_id === pid ? m.comp2_id : m.comp1_id)
         )];
+
+        // Fetch only the opponent players needed — avoids bulk 3000-row fetch
+        const { data: allPlayers, error: e4 } = await supabase
+          .from('wtt_players')
+          .select('ittf_id,player_name,country_code')
+          .in('ittf_id', oppIds);
+        if (e4) throw e4;
         const { data: oppRanks, error: e5 } = await supabase
           .from('rankings_singles_normalized')
           .select('player_id,rank,ranking_date')
