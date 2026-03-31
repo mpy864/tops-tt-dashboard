@@ -91,46 +91,35 @@ function buildRankChartData(rankingHistory, windowMonths) {
   const sorted = [...rankingHistory]
     .filter(r => new Date(r.ranking_date) >= cutoff)
     .sort((a, b) => new Date(a.ranking_date) - new Date(b.ranking_date));
-  if (!sorted.length) return [];
+  if (!sorted.length) return { data: [], ticks: [] };
 
-  if (windowMonths === 6) {
-    // Weekly points, label first entry of each month only
-    const seenMonths = new Set();
-    return sorted.map(r => {
-      const d = new Date(r.ranking_date);
-      const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
-      let label = '';
-      if (!seenMonths.has(monthKey)) {
-        seenMonths.add(monthKey);
-        label = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      }
-      return {
-        label,
-        fullDate: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        rank: r.rank,
-        points: r.points,
-      };
-    });
-  }
-
-  // 12M and 18M — weekly points, label first entry of each quarter-start month only
-  const seenQuarters = new Set();
-  return sorted.map(r => {
+  // Every point gets a numeric timestamp — Recharts maps cursor correctly
+  const data = sorted.map(r => {
     const d = new Date(r.ranking_date);
-    const mo = d.getMonth() + 1;
-    const quarterKey = `${d.getFullYear()}-${mo}`;
-    let label = '';
-    if (Q_START.has(mo) && !seenQuarters.has(quarterKey)) {
-      seenQuarters.add(quarterKey);
-      label = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-    }
     return {
-      label,
+      x: d.getTime(),
       fullDate: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
       rank: r.rank,
-      points: r.points,
     };
   });
+
+  // Compute which timestamps should get x-axis labels
+  const ticks = [];
+  const seen = new Set();
+  for (const pt of data) {
+    const d = new Date(pt.x);
+    const mo = d.getMonth() + 1;
+    const key = `${d.getFullYear()}-${mo}`;
+    if (windowMonths === 6) {
+      // Label every month
+      if (!seen.has(key)) { seen.add(key); ticks.push(pt.x); }
+    } else {
+      // Label quarter-start months only (Jan/Apr/Jul/Oct)
+      if (Q_START.has(mo) && !seen.has(key)) { seen.add(key); ticks.push(pt.x); }
+    }
+  }
+
+  return { data, ticks };
 }
 
 function CustomXTick({ x, y, payload }) {
@@ -629,11 +618,11 @@ export default function DynamicOKRDashboard() {
   const verdict = useMemo(() => w6 ? computeVerdict(w6) : null, [w6]);
 
   const rankChartData = useMemo(() => {
-    if (!playerMetrics?.rankingHistory) return [];
+    if (!playerMetrics?.rankingHistory) return { data: [], ticks: [] };
     return buildRankChartData(playerMetrics.rankingHistory, parseInt(rankWindow));
   }, [playerMetrics, rankWindow]);
 
-  const chartRanks = rankChartData.map(d => d.rank).filter(Boolean);
+  const chartRanks = rankChartData.data.map(d => d.rank).filter(Boolean);
   const peakRank   = chartRanks.length ? Math.min(...chartRanks) : null;
   const startRank  = rankWindowData && playerMetrics
     ? playerMetrics.ranking + rankWindowData.rankChange : null;
@@ -820,9 +809,9 @@ export default function DynamicOKRDashboard() {
 
                       {/* Chart */}
                       <div className="bg-slate-50 rounded-xl p-4">
-                        {rankChartData.length > 1 ? (
+                        {rankChartData.data.length > 1 ? (
                           <ResponsiveContainer width="100%" height={200}>
-                            <AreaChart data={rankChartData} margin={{ top: 8, right: 16, bottom: 0, left: -10 }}>
+                            <AreaChart data={rankChartData.data} margin={{ top: 8, right: 16, bottom: 0, left: -10 }}>
                               <defs>
                                 <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
                                   <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.12} />
@@ -831,11 +820,15 @@ export default function DynamicOKRDashboard() {
                               </defs>
                               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                               <XAxis
-                                dataKey="label"
-                                tick={<CustomXTick />}
+                                dataKey="x"
+                                type="number"
+                                scale="time"
+                                domain={['dataMin', 'dataMax']}
+                                ticks={rankChartData.ticks}
+                                tickFormatter={ts => new Date(ts).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                                tick={{ fontSize: 10, fill: '#94a3b8' }}
                                 tickLine={false}
                                 axisLine={false}
-                                interval={0}
                               />
                               <YAxis
                                 reversed
@@ -849,12 +842,7 @@ export default function DynamicOKRDashboard() {
                               <Tooltip
                                 cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '3 3' }}
                                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: 12, padding: '6px 10px' }}
-                                labelFormatter={(_label, payload) => {
-                                  if (payload && payload[0]) {
-                                    return payload[0].payload.fullDate || '';
-                                  }
-                                  return '';
-                                }}
+                                labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullDate || ''}
                                 formatter={(v) => [`#${v}`, 'Rank']}
                               />
                               {peakRank && (
