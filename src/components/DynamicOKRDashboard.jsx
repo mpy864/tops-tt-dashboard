@@ -104,7 +104,12 @@ function buildRankChartData(rankingHistory, windowMonths) {
         seenMonths.add(monthKey);
         label = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
       }
-      return { label, rank: r.rank, points: r.points };
+      return {
+        label,
+        fullDate: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        rank: r.rank,
+        points: r.points,
+      };
     });
   }
 
@@ -119,7 +124,12 @@ function buildRankChartData(rankingHistory, windowMonths) {
       seenQuarters.add(quarterKey);
       label = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     }
-    return { label, rank: r.rank, points: r.points };
+    return {
+      label,
+      fullDate: d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      rank: r.rank,
+      points: r.points,
+    };
   });
 }
 
@@ -812,31 +822,55 @@ export default function DynamicOKRDashboard() {
                       <div className="bg-slate-50 rounded-xl p-4">
                         {rankChartData.length > 1 ? (
                           <ResponsiveContainer width="100%" height={200}>
-                            <AreaChart data={rankChartData} margin={{ top: 8, right: 8, bottom: 0, left: -15 }}>
+                            <AreaChart data={rankChartData} margin={{ top: 8, right: 16, bottom: 0, left: -10 }}>
                               <defs>
                                 <linearGradient id="rg" x1="0" y1="0" x2="0" y2="1">
-                                  <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.1} />
-                                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}   />
+                                  <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.12} />
+                                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}    />
                                 </linearGradient>
                               </defs>
                               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                              <XAxis dataKey="label" tick={<CustomXTick />} tickLine={false} axisLine={false} interval={0} />
-                              <YAxis reversed domain={['auto', 'auto']}
-                                tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false}
-                                tickFormatter={v => `#${v}`} />
+                              <XAxis
+                                dataKey="label"
+                                tick={<CustomXTick />}
+                                tickLine={false}
+                                axisLine={false}
+                                interval={0}
+                              />
+                              <YAxis
+                                reversed
+                                domain={['dataMin - 2', 'dataMax + 2']}
+                                tick={{ fontSize: 10, fill: '#94a3b8' }}
+                                tickLine={false}
+                                axisLine={false}
+                                tickFormatter={v => `#${Math.round(v)}`}
+                                allowDecimals={false}
+                              />
                               <Tooltip
-                                cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
-                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: 12 }}
-                                labelStyle={{ color: '#64748b' }}
-                                formatter={(v, name) => [name === 'rank' ? `#${v}` : v, name === 'rank' ? 'Rank' : 'Points']}
+                                cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '3 3' }}
+                                contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: 12, padding: '6px 10px' }}
+                                labelFormatter={(_label, payload) => {
+                                  if (payload && payload[0]) {
+                                    return payload[0].payload.fullDate || '';
+                                  }
+                                  return '';
+                                }}
+                                formatter={(v) => [`#${v}`, 'Rank']}
                               />
                               {peakRank && (
                                 <ReferenceLine y={peakRank} stroke="#10b981" strokeDasharray="4 4" strokeWidth={1.5}
                                   label={{ value: `Peak #${peakRank}`, position: 'insideTopRight', fontSize: 9, fill: '#10b981' }} />
                               )}
-                              <Area type="monotone" dataKey="rank" stroke="#3b82f6" strokeWidth={2}
-                                fill="url(#rg)" dot={false}
-                                activeDot={{ r: 5, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} />
+                              <Area
+                                type="monotone"
+                                dataKey="rank"
+                                stroke="#3b82f6"
+                                strokeWidth={2}
+                                fill="url(#rg)"
+                                dot={false}
+                                activeDot={{ r: 4, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }}
+                                isAnimationActive={false}
+                              />
                             </AreaChart>
                           </ResponsiveContainer>
                         ) : (
