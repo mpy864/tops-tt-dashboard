@@ -560,9 +560,9 @@ export default function DynamicOKRDashboard() {
 
         const oppRankMap = {};
         for (const r of (oppRanks || [])) {
-        const key = String(r.player_id);
-        if (!oppRankMap[key]) oppRankMap[key] = [];
-        oppRankMap[key].push(r);
+          const key = String(r.player_id);
+          if (!oppRankMap[key]) oppRankMap[key] = [];
+          oppRankMap[key].push(r);
         }
         setPlayerMetrics(buildMetrics(matches, rankings, events, allPlayers, oppRankMap, selectedPlayer));
       } catch (err) { setError(err.message); }
@@ -571,9 +571,9 @@ export default function DynamicOKRDashboard() {
   }, [selectedPlayer]);
 
   function buildMetrics(matches, rankings, events, allPlayers, oppRankMap, playerId) {
-   const pid = parseInt(playerId);
-   const playerCurrentRank = rankings?.[0]?.rank || 999;
-   const matchLedger = (matches || []).map(m => {
+    const pid = parseInt(playerId);
+    const playerCurrentRank = rankings?.[0]?.rank || 999;
+    const matchLedger = (matches || []).map(m => {
       const isComp1 = parseInt(m.comp1_id) === pid;
       const won     = isComp1 ? m.result === 'W' : m.result === 'L';
       const oppId   = isComp1 ? m.comp2_id : m.comp1_id;
