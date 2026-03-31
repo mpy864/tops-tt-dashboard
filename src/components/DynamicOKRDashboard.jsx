@@ -94,38 +94,33 @@ function buildRankChartData(rankingHistory, windowMonths) {
   if (!sorted.length) return [];
 
   if (windowMonths === 6) {
-    // Weekly data points for smooth continuous line
-    // Labels only on month-start weeks — "Oct 2025", "Nov 2025" etc.
+    // Weekly points, label first entry of each month only
+    const seenMonths = new Set();
     return sorted.map(r => {
       const d = new Date(r.ranking_date);
-      const mo = d.getMonth() + 1;
-      const day = d.getDate();
-      // Label only on first entry of each month (day <= 7)
-      const label = day <= 7
-        ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-        : '';
+      const monthKey = `${d.getFullYear()}-${d.getMonth()}`;
+      let label = '';
+      if (!seenMonths.has(monthKey)) {
+        seenMonths.add(monthKey);
+        label = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      }
       return { label, rank: r.rank, points: r.points };
     });
   }
 
-  // 12M and 18M — weekly data points for smooth line,
-  // but only label quarter-start months (Jan/Apr/Jul/Oct) as "Apr 2026"
-  const byWeek = new Map();
-  for (const r of sorted) {
+  // 12M and 18M — weekly points, label first entry of each quarter-start month only
+  const seenQuarters = new Set();
+  return sorted.map(r => {
     const d = new Date(r.ranking_date);
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    byWeek.set(key, r);
-  }
-  return [...byWeek.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([key, r]) => {
-      const d = new Date(r.ranking_date);
-      const mo = d.getMonth() + 1;
-      const label = Q_START.has(mo)
-        ? d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-        : '';
-      return { label, rank: r.rank, points: r.points };
-    });
+    const mo = d.getMonth() + 1;
+    const quarterKey = `${d.getFullYear()}-${mo}`;
+    let label = '';
+    if (Q_START.has(mo) && !seenQuarters.has(quarterKey)) {
+      seenQuarters.add(quarterKey);
+      label = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    }
+    return { label, rank: r.rank, points: r.points };
+  });
 }
 
 function CustomXTick({ x, y, payload }) {
@@ -830,6 +825,7 @@ export default function DynamicOKRDashboard() {
                                 tick={{ fontSize: 10, fill: '#94a3b8' }} tickLine={false} axisLine={false}
                                 tickFormatter={v => `#${v}`} />
                               <Tooltip
+                                cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '4 4' }}
                                 contentStyle={{ backgroundColor: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: 12 }}
                                 labelStyle={{ color: '#64748b' }}
                                 formatter={(v, name) => [name === 'rank' ? `#${v}` : v, name === 'rank' ? 'Rank' : 'Points']}
@@ -839,7 +835,8 @@ export default function DynamicOKRDashboard() {
                                   label={{ value: `Peak #${peakRank}`, position: 'insideTopRight', fontSize: 9, fill: '#10b981' }} />
                               )}
                               <Area type="monotone" dataKey="rank" stroke="#3b82f6" strokeWidth={2}
-                                fill="url(#rg)" dot={false} activeDot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }} />
+                                fill="url(#rg)" dot={false}
+                                activeDot={{ r: 5, fill: '#3b82f6', stroke: '#fff', strokeWidth: 2 }} />
                             </AreaChart>
                           </ResponsiveContainer>
                         ) : (
