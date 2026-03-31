@@ -558,11 +558,15 @@ export default function DynamicOKRDashboard() {
           .select('ittf_id,player_name,country_code')
           .in('ittf_id', oppIds);
         if (e4) throw e4;
+        const cutoffDate = new Date();
+        cutoffDate.setMonth(cutoffDate.getMonth() - 18);
         const { data: oppRanks, error: e5 } = await supabase
           .from('rankings_singles_normalized')
           .select('player_id,rank,ranking_date')
           .in('player_id', oppIds)
-          .order('ranking_date', { ascending: false });
+          .gte('ranking_date', cutoffDate.toISOString().split('T')[0])
+          .order('ranking_date', { ascending: false })
+          .limit(50000);
         if (e5) throw e5;
 
         const oppRankMap = {};
