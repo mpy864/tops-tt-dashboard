@@ -157,6 +157,17 @@ RESULTS_URL = (
     "https://wtt-website-live-events-api-prod-cmfzgabgbzhphabb.eastasia-01"
     ".azurewebsites.net/api/cms/GetOfficialResult"
 )
+PROFILE_URL = (
+    "https://wtt-ttu-connect-frontdoor-g6gwg6e2bgc6gdfm.a01.azurefd.net"
+    "/Players/GetPlayers"
+)
+PROFILE_HEADERS = {
+    "apikey":     "2bf8b222-532c-4c60-8ebe-eb6fdfebe84a",
+    "secapimkey": "S_WTT_882jjh7basdj91834783mds8j2jsd81",
+    "origin":     "https://www.worldtabletennis.com",
+    "referer":    "https://www.worldtabletennis.com/",
+    "accept":     "application/json",
+}
 
 COMMON_HEADERS = {
     "User-Agent": "Mozilla/5.0",
@@ -373,6 +384,76 @@ def ensure_event_in_db(supabase: Client, ev: dict) -> None:
     }, on_conflict="event_id").execute()
 
 
+# ─── Auto-insert new players ──────────────────────────────────────────────────
+
+def ensure_players_in_db(supabase: Client, matches: list[dict]) -> None:
+    """
+    Check all comp IDs in matches against wtt_players.
+    Insert any missing players by fetching their profile from WTT API.
+    """
+    from datetime import datetime, timezone
+
+    # Collect all unique comp IDs from matches
+    all_comp_ids = set()
+    for m in matches:
+        if m.get("comp1_id"): all_comp_ids.add(m["comp1_id"])
+        if m.get("comp2_id"): all_comp_ids.add(m["comp2_id"])
+
+    if not all_comp_ids:
+        return
+
+    # Check which ones already exist in wtt_players
+    existing = supabase.table("wtt_players") \
+        .select("ittf_id") \
+        .in_("ittf_id", list(all_comp_ids)) \
+        .execute()
+    existing_ids = {r["ittf_id"] for r in (existing.data or [])}
+
+    missing_ids = all_comp_ids - existing_ids
+    if not missing_ids:
+        return
+
+    print(f"  [Players] {len(missing_ids)} new players — fetching profiles...")
+
+    inserted = 0
+    for ittf_id in missing_ids:
+        try:
+            now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+            r = requests.get(PROFILE_URL,
+                             params={"IttfId": ittf_id, "q": now},
+                             headers=PROFILE_HEADERS, timeout=15)
+            if r.status_code == 200:
+                result = r.json().get("Result") or []
+                if result:
+                    p = result[0]
+                    dob = None
+                    dob_raw = p.get("DOB")
+                    if dob_raw:
+                        try:
+                            dob = datetime.strptime(dob_raw, "%m/%d/%Y %H:%M:%S").strftime("%Y-%m-%d")
+                        except:
+                            try: dob = dob_raw[:10]
+                            except: pass
+
+                    supabase.table("wtt_players").upsert({
+                        "ittf_id":      ittf_id,
+                        "player_name":  p.get("PlayerName"),
+                        "country_code": p.get("CountryCode"),
+                        "country_name": p.get("CountryName"),
+                        "gender":       p.get("Gender"),
+                        "dob":          dob,
+                        "handedness":   p.get("Handedness"),
+                        "grip":         p.get("Grip"),
+                        "blade_type":   p.get("BladeType"),
+                    }, on_conflict="ittf_id").execute()
+                    inserted += 1
+            time.sleep(0.5)
+        except Exception as e:
+            print(f"  [Players] Error fetching {ittf_id}: {e}")
+
+    print(f"  [Players] Inserted {inserted} new players.")
+
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
@@ -413,6 +494,10 @@ def main():
 
         total_upserted += len(matches)
         print(f"  Upserted {len(matches)} matches for {name}.")
+
+        # Auto-insert any new players not yet in wtt_players
+        ensure_players_in_db(supabase, matches)
+
         time.sleep(SLEEP_EVENT)
 
     print(f"\n[Matches] Done. Total matches upserted: {total_upserted}")
