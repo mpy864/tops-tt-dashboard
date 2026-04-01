@@ -8,7 +8,7 @@ Runs daily via GitHub Actions.
 import os
 import time
 import requests
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime, timezone
 from supabase import create_client, Client
 
 # ─── Config ───────────────────────────────────────────────────────────────────
@@ -78,10 +78,11 @@ WTT_2026_EVENT_IDS = {
     3269: ("WTT Feeder Gdansk 2026",               "2026-12-02"),
     3255: ("WTT Finals Hong Kong 2026",            "2026-12-13"),
     # ── ITTF Major Events ─────────────────────────────────────────
-    3379: ("ITTF World Cup Macao 2026",            "2026-04-05"),
-    3216: ("ITTF World Team Championships 2026",   "2026-05-10"),
-    3377: ("ITTF World Youth Championships 2026",  "2026-11-28"),
-    3378: ("ITTF Mixed Team World Cup 2026",       "2026-12-06"),
+    # NOTE: These are on results.ittf.com API, not WTT API — handled by fetch_ittf_matches.py
+    # 3379: ITTF World Cup Macao 2026 (Apr 5)
+    # 3216: ITTF World Team Championships 2026 (May 10)
+    # 3377: ITTF World Youth Championships 2026 (Nov 28)
+    # 3378: ITTF Mixed Team World Cup 2026 (Dec 6)
     # ── WTT Youth Series ──────────────────────────────────────────
     3273: ("WTT Youth Contender Vadodara 2026",    "2026-01-05"),
     3274: ("WTT Youth Contender San Francisco 2026","2026-01-05"),
@@ -349,7 +350,6 @@ def parse_match(m_card: dict, c1: dict, c2: dict,
     date_str = match_dt.get("startDateLocal") or match_dt.get("startDateUTC")
     if date_str:
         try:
-            from datetime import datetime
             dt = datetime.strptime(date_str, "%m/%d/%Y %H:%M:%S")
             event_date = dt.strftime("%Y-%m-%d")
         except ValueError:
@@ -371,7 +371,7 @@ def parse_match(m_card: dict, c1: dict, c2: dict,
         "game_scores":    game_scores,
         "result":         result,
         "event_date":     event_date,
-        "last_updated":   "now()",
+        "last_updated":   datetime.now(timezone.utc).isoformat(),
     }
 
 
