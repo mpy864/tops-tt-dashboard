@@ -747,6 +747,14 @@ export default function DynamicOKRDashboard() {
       <div className="okr min-h-screen bg-slate-50">
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
 
+          {/* ── Header ── */}
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">TOPS · Table Tennis</p>
+            <a href="/h2h" className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
+              Compare players <ArrowRight size={11} />
+            </a>
+          </div>
+
           {/* ── Selector ── */}
           <div className="flex gap-2">
             <div className="relative flex-1">
