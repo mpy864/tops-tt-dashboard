@@ -94,7 +94,7 @@ function fmtStyle(handedness, grip) {
   return parts.join(' · ');
 }
 
-
+function getInitials(name) {
   if (!name || name === 'Unknown') return '?';
   const parts = name.trim().split(' ');
   return parts.length >= 2
