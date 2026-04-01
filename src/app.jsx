@@ -1,7 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
-import DynamicOKRDashboard from './components/DynamicOKRDashboard'
-import H2HDashboard from './components/H2HDashboard'
-
+import DynamicOKRDashboard from './components/DynamicOKRDashboard.jsx'
+import H2HDashboard from './components/H2HDashboard.jsx'
 export default function App() {
   return (
     <Routes>
