@@ -5,9 +5,8 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine
 } from 'recharts';
 import {
-  TrendingUp, TrendingDown, Minus,
-  ChevronDown, ChevronUp,
-  Zap, Star, Activity, Search, ArrowRight
+  ChevronDown, ChevronUp, Search, Star, Zap, Activity, ArrowRight
+} from 'lucide-react';
 } from 'lucide-react';
 
 const supabase = createClient(
@@ -545,7 +544,6 @@ export default function DynamicOKRDashboard() {
   const [openDna, setOpenDna] = useState(null);
 
   // Form
-  const [formExpanded, setFormExpanded] = useState(null);
   const [formShowAll,  setFormShowAll]  = useState(false);
 
   const tabContentRef = useRef(null);
@@ -582,7 +580,7 @@ export default function DynamicOKRDashboard() {
       setFetching(true); setError(null);
       setOpenRankBar(null); setOpenTierBar(null);
       setOpenCompBar(null); setOpenNationBar(null);
-      setOpenDna(null); setFormExpanded(null); setFormShowAll(false);
+      setOpenDna(null); setFormShowAll(false);
       setPlayerProfile(null);
       try {
         const [
