@@ -76,7 +76,25 @@ function parseDisplayGames(str, isComp1) {
   });
 }
 
-function getInitials(name) {
+function calcAge(dob) {
+  if (!dob) return null;
+  const b = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - b.getFullYear();
+  const m = today.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+  return age;
+}
+
+function fmtStyle(handedness, grip) {
+  if (!handedness && !grip) return null;
+  const parts = [];
+  if (handedness) parts.push(handedness.replace(' Hand', ''));
+  if (grip) parts.push(grip);
+  return parts.join(' · ');
+}
+
+
   if (!name || name === 'Unknown') return '?';
   const parts = name.trim().split(' ');
   return parts.length >= 2
@@ -207,11 +225,38 @@ function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurr
     .map(n => { const bt = n.wins + n.losses; return { ...n, total: bt, winPct: bt > 0 ? (n.wins / bt) * 100 : 0 }; })
     .sort((a, b) => b.total - a.total).slice(0, 8);
 
+  // By playing style (handedness)
+  const stylemap = {};
+  for (const m of filtered) {
+    const hand = m.opponentHandedness || 'Unknown';
+    const grip = m.opponentGrip || 'Unknown';
+    const key = hand === 'Unknown' && grip === 'Unknown' ? 'Unknown'
+      : [hand.replace(' Hand',''), grip].filter(s => s && s !== 'Unknown').join(' · ') || 'Unknown';
+    if (!stylemap[key]) stylemap[key] = { style: key, wins: 0, losses: 0, matches: [] };
+    if (m.result === 'W') stylemap[key].wins++; else stylemap[key].losses++;
+    stylemap[key].matches.push(m);
+  }
+  const styleGroups = Object.values(stylemap)
+    .map(s => { const bt = s.wins + s.losses; return { ...s, total: bt, winPct: bt > 0 ? (s.wins / bt) * 100 : 0 }; })
+    .sort((a, b) => b.total - a.total);
+
+  // By grip only
+  const gripmap = {};
+  for (const m of filtered) {
+    const grip = m.opponentGrip || 'Unknown';
+    if (!gripmap[grip]) gripmap[grip] = { grip, wins: 0, losses: 0, matches: [] };
+    if (m.result === 'W') gripmap[grip].wins++; else gripmap[grip].losses++;
+    gripmap[grip].matches.push(m);
+  }
+  const gripGroups = Object.values(gripmap)
+    .map(g => { const bt = g.wins + g.losses; return { ...g, total: bt, winPct: bt > 0 ? (g.wins / bt) * 100 : 0 }; })
+    .sort((a, b) => b.total - a.total);
+
   return {
     winRate, upsetYield, clutchIndex, avgPtDiff, rankChange,
     matchCount: total, wins: wins.length, losses: losses.length,
     straightSetsWins, straightSetsLosses, comebackWins, avgOppRankBeaten,
-    rankBuckets, tierBuckets, topCompetitors, topNations,
+    rankBuckets, tierBuckets, topCompetitors, topNations, styleGroups, gripGroups,
     dnaGroups: {
       straightWins:   wins.filter(m => m.isStraightWin),
       straightLosses: losses.filter(m => m.isStraightLoss),
@@ -342,24 +387,33 @@ function MatchRow({ match: m }) {
         </tr>
       )}
 
-      {/* ── Row 2b: set scores, colspan=3, right-aligned ── */}
       {open && (
         <tr style={{ ...row2Bg, borderBottom: '0.5px solid #f1f5f9' }}>
-          <td colSpan={3} style={{ padding: '3px 14px 10px', textAlign: 'right' }}>
-            <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              {games.length > 0
-                ? games.map((g, i) => (
-                  <span key={i} style={{
-                    fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
-                    background: g.pWon ? '#d1fae5' : '#fee2e2',
-                    color: g.pWon ? '#065f46' : '#991b1b',
-                  }}>
-                    {g.pScore}–{g.oScore}
-                  </span>
-                ))
-                : <span style={{ fontSize: 11, color: '#cbd5e1' }}>No score data</span>
-              }
-            </span>
+          <td colSpan={3} style={{ padding: '3px 14px 10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
+              {/* Opponent age + style — left */}
+              <span style={{ fontSize: 11, color: 'var(--color-text-tertiary)' }}>
+                {[
+                  calcAge(m.opponentDob) ? `Age ${calcAge(m.opponentDob)}` : null,
+                  fmtStyle(m.opponentHandedness, m.opponentGrip),
+                ].filter(Boolean).join(' · ')}
+              </span>
+              {/* Game scores — right */}
+              <span style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {games.length > 0
+                  ? games.map((g, i) => (
+                    <span key={i} style={{
+                      fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+                      background: g.pWon ? '#d1fae5' : '#fee2e2',
+                      color: g.pWon ? '#065f46' : '#991b1b',
+                    }}>
+                      {g.pScore}–{g.oScore}
+                    </span>
+                  ))
+                  : <span style={{ fontSize: 11, color: '#cbd5e1' }}>No score data</span>
+                }
+              </span>
+            </div>
           </td>
         </tr>
       )}
@@ -465,6 +519,7 @@ export default function DynamicOKRDashboard() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [playerMetrics, setPlayerMetrics]   = useState(null);
   const [playerName, setPlayerName]         = useState('');
+  const [playerProfile, setPlayerProfile]   = useState(null);
   const [loading, setLoading]               = useState(true);
   const [fetching, setFetching]             = useState(false);
   const [error, setError]                   = useState(null);
@@ -528,6 +583,7 @@ export default function DynamicOKRDashboard() {
       setOpenRankBar(null); setOpenTierBar(null);
       setOpenCompBar(null); setOpenNationBar(null);
       setOpenDna(null); setFormExpanded(null); setFormShowAll(false);
+      setPlayerProfile(null);
       try {
         const [
           { data: matches,    error: e1 },
@@ -555,9 +611,17 @@ export default function DynamicOKRDashboard() {
         // Fetch only the opponent players needed — avoids bulk 3000-row fetch
         const { data: allPlayers, error: e4 } = await supabase
           .from('wtt_players')
-          .select('ittf_id,player_name,country_code')
+          .select('ittf_id,player_name,country_code,dob,handedness,grip')
           .in('ittf_id', oppIds);
         if (e4) throw e4;
+
+        // Fetch selected player's own profile
+        const { data: profileData } = await supabase
+          .from('wtt_players')
+          .select('dob,handedness,grip')
+          .eq('ittf_id', selectedPlayer)
+          .single();
+        setPlayerProfile(profileData || null);
         const cutoffDate = new Date();
         cutoffDate.setMonth(cutoffDate.getMonth() - 18);
         const { data: oppRanks, error: e5 } = await supabase
@@ -600,6 +664,9 @@ export default function DynamicOKRDashboard() {
         rawDate: matchDate,
         opponent: oppP?.player_name || 'Unknown',
         opponentCountry: oppP?.country_code || null,
+        opponentDob: oppP?.dob || null,
+        opponentHandedness: oppP?.handedness || null,
+        opponentGrip: oppP?.grip || null,
         opponentRank, opponentCurrentRank,
         tournament: events?.find(e => e.event_id === m.event_id)?.event_name || 'Unknown',
         eventTier: events?.find(e => e.event_id === m.event_id)?.tops_grade ?? null,
@@ -658,6 +725,8 @@ export default function DynamicOKRDashboard() {
     { id: 'tier',       label: 'By event tier'    },
     { id: 'competitor', label: 'Top opponents'    },
     { id: 'nation',     label: 'By nation'        },
+    { id: 'style',      label: 'By style'         },
+    { id: 'grip',       label: 'By grip'          },
   ];
 
   if (loading) return (
@@ -736,13 +805,12 @@ export default function DynamicOKRDashboard() {
               <div className="bg-white border border-slate-200 rounded-xl px-5 py-4">
                 <div className="flex items-center justify-between gap-4 flex-wrap">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-sm font-bold text-blue-700 shrink-0">
-                      {getInitials(playerName)}
-                    </div>
                     <div>
                       <p className="text-base font-semibold text-slate-800">{playerName}</p>
                       <p className="text-xs text-slate-400 mt-0.5 uppercase tracking-wide">
                         {players.find(p => p.player_id === selectedPlayer)?.gender_label}
+                        {calcAge(playerProfile?.dob) && ` · Age ${calcAge(playerProfile?.dob)}`}
+                        {fmtStyle(playerProfile?.handedness, playerProfile?.grip) && ` · ${fmtStyle(playerProfile?.handedness, playerProfile?.grip)}`}
                       </p>
                     </div>
                   </div>
@@ -996,6 +1064,24 @@ export default function DynamicOKRDashboard() {
                                     {n.matches.map((m, i) => <MatchRow key={i} match={m} />)}
                                   </WLBarRows>
                                 ))
+                            )}
+                            {wlFilter === 'style' && (
+                              win.styleGroups.filter(s => s.style !== 'Unknown').map(s => (
+                                <WLBarRows key={s.style} label={s.style} wins={s.wins} losses={s.losses} winPct={s.winPct}
+                                  isOpen={openNationBar === s.style}
+                                  onToggle={() => setOpenNationBar(openNationBar === s.style ? null : s.style)}>
+                                  {s.matches.map((m, i) => <MatchRow key={i} match={m} />)}
+                                </WLBarRows>
+                              ))
+                            )}
+                            {wlFilter === 'grip' && (
+                              win.gripGroups.filter(g => g.grip !== 'Unknown').map(g => (
+                                <WLBarRows key={g.grip} label={g.grip} wins={g.wins} losses={g.losses} winPct={g.winPct}
+                                  isOpen={openNationBar === g.grip}
+                                  onToggle={() => setOpenNationBar(openNationBar === g.grip ? null : g.grip)}>
+                                  {g.matches.map((m, i) => <MatchRow key={i} match={m} />)}
+                                </WLBarRows>
+                              ))
                             )}
                           </tbody>
                         </table>
