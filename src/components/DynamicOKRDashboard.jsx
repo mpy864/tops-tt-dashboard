@@ -7,7 +7,6 @@ import {
 import {
   ChevronDown, ChevronUp, Search, Star, Zap, Activity, ArrowRight
 } from 'lucide-react';
-} from 'lucide-react';
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
