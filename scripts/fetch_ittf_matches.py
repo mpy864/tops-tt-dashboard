@@ -17,8 +17,9 @@ from supabase import create_client, Client
 SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
 
-ITTF_BASE    = "https://results.ittf.com/ittf-web-results/html"
-PROFILE_URL  = "https://wtt-ttu-connect-frontdoor-g6gwg6e2bgc6gdfm.a01.azurefd.net/Players/GetPlayers"
+ITTF_BASE      = "https://results.ittf.com/ittf-web-results/html"
+WORLDCUP_BASE  = "https://worldcupresults.ittf.com/ittf-web-results/html"
+PROFILE_URL    = "https://wtt-ttu-connect-frontdoor-g6gwg6e2bgc6gdfm.a01.azurefd.net/Players/GetPlayers"
 PROFILE_HEADERS = {
     "apikey":     "2bf8b222-532c-4c60-8ebe-eb6fdfebe84a",
     "secapimkey": "S_WTT_882jjh7basdj91834783mds8j2jsd81",
@@ -28,23 +29,22 @@ PROFILE_HEADERS = {
 }
 
 # ITTF events for 2026 with their date ranges
-# Format: event_id: (event_name, start_date, end_date)
-# Add new events here as they are announced
+# Format: event_id: (event_name, start_date, end_date, base_url_override_or_None)
 ITTF_2026_EVENTS = {
     # ── ITTF Major Events ─────────────────────────────────────────
-    3379: ("ITTF Men's & Women's World Cup Macao 2026", "2026-03-30", "2026-04-05"),
-    3216: ("ITTF World Team Championships London 2026", "2026-04-28", "2026-05-10"),
-    3377: ("ITTF World Youth Championships 2026",       "2026-11-21", "2026-11-28"),
-    3378: ("ITTF Mixed Team World Cup Chengdu 2026",    "2026-11-29", "2026-12-06"),
+    3379: ("ITTF Men's & Women's World Cup Macao 2026", "2026-03-30", "2026-04-05", WORLDCUP_BASE),
+    3216: ("ITTF World Team Championships London 2026", "2026-04-28", "2026-05-10", None),
+    3377: ("ITTF World Youth Championships 2026",       "2026-11-21", "2026-11-28", None),
+    3378: ("ITTF Mixed Team World Cup Chengdu 2026",    "2026-11-29", "2026-12-06", None),
     # ── Asian Events ──────────────────────────────────────────────
-    3471: ("ITTF-ATTU Asian Cup Haikou 2026",                        "2026-02-04", "2026-02-08"),
-    3472: ("ITTF-ATTU Asian Youth Championships Muscat 2026",        "2026-06-22", "2026-06-28"),
-    3473: ("Asian Games Nagoya 2026",                                "2026-09-20", "2026-09-28"),
-    3474: ("ITTF-ATTU Asian Championships Tashkent 2026",            "2026-10-12", "2026-10-25"),
-    3475: ("ITTF-ATTU South East Asian Youth Championships 2026",    "2026-04-14", "2026-04-19"),
-    3498: ("ITTF-ATTU Central Asia Youth Championships Almaty 2026", "2026-04-03", "2026-04-05"),
-    3499: ("ITTF-ATTU West Asia Youth Championships Amman 2026",     "2026-06-01", "2026-06-01"),
-    3500: ("ITTF-ATTU South Asia Youth Championships Shimla 2026",   "2026-04-08", "2026-04-11"),
+    3471: ("ITTF-ATTU Asian Cup Haikou 2026",                        "2026-02-04", "2026-02-08", None),
+    3472: ("ITTF-ATTU Asian Youth Championships Muscat 2026",        "2026-06-22", "2026-06-28", None),
+    3473: ("Asian Games Nagoya 2026",                                "2026-09-20", "2026-09-28", None),
+    3474: ("ITTF-ATTU Asian Championships Tashkent 2026",            "2026-10-12", "2026-10-25", None),
+    3475: ("ITTF-ATTU South East Asian Youth Championships 2026",    "2026-04-14", "2026-04-19", None),
+    3498: ("ITTF-ATTU Central Asia Youth Championships Almaty 2026", "2026-04-03", "2026-04-05", None),
+    3499: ("ITTF-ATTU West Asia Youth Championships Amman 2026",     "2026-06-01", "2026-06-01", None),
+    3500: ("ITTF-ATTU South Asia Youth Championships Shimla 2026",   "2026-04-08", "2026-04-11", None),
 }
 
 SLEEP_DAY   = 0.5   # seconds between day fetches
@@ -62,9 +62,9 @@ def event_has_matches(supabase: Client, event_id: int) -> bool:
     return (result.count or 0) > 0
 
 
-def fetch_day(event_id: int, date_str: str) -> list[dict]:
+def fetch_day(event_id: int, date_str: str, base_url: str = ITTF_BASE) -> list[dict]:
     """Fetch all singles matches for one event day from ITTF API."""
-    url = f"{ITTF_BASE}/TTE{event_id}/match/d{date_str}.json"
+    url = f"{base_url}/TTE{event_id}/match/d{date_str}.json"
     try:
         r = requests.get(url, timeout=15)
         if r.status_code != 200:
@@ -163,7 +163,7 @@ def parse_match(m: dict, event_id: int, event_date_str: str,
     }
 
 
-def fetch_event(event_id: int, start_str: str, end_str: str) -> list[dict]:
+def fetch_event(event_id: int, start_str: str, end_str: str, base_url: str = ITTF_BASE) -> list[dict]:
     """Fetch all matches across all days of an event."""
     all_records = []
     counter     = 1
@@ -173,7 +173,7 @@ def fetch_event(event_id: int, start_str: str, end_str: str) -> list[dict]:
 
     while d <= end:
         ds       = d.isoformat()
-        day_data = fetch_day(event_id, ds)
+        day_data = fetch_day(event_id, ds, base_url)
 
         if day_data:
             day_records = []
@@ -273,7 +273,8 @@ def main():
     today    = date.today()
     total    = 0
 
-    for event_id, (name, start_str, end_str) in ITTF_2026_EVENTS.items():
+    for event_id, (name, start_str, end_str, base_url_override) in ITTF_2026_EVENTS.items():
+        base_url = base_url_override or ITTF_BASE
         end_date = date.fromisoformat(end_str)
 
         # Only fetch events that have ended
@@ -295,7 +296,7 @@ def main():
             "event_start_date": start_str,
         }, on_conflict="event_id").execute()
 
-        matches = fetch_event(event_id, start_str, end_str)
+        matches = fetch_event(event_id, start_str, end_str, base_url)
 
         if not matches:
             print(f"  No matches found — may require auth or wrong dates.")
