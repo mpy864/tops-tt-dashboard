@@ -32,7 +32,7 @@ PROFILE_HEADERS = {
 # Format: event_id: (event_name, start_date, end_date, base_url_override_or_None)
 ITTF_2026_EVENTS = {
     # ── ITTF Major Events ─────────────────────────────────────────
-    3379: ("ITTF Men's & Women's World Cup Macao 2026", "2026-03-30", "2026-04-05", WORLDCUP_BASE),
+    # 3379 moved to fetch_matches.py — confirmed on WTT API
     3216: ("ITTF World Team Championships London 2026", "2026-04-28", "2026-05-10", None),
     3377: ("ITTF World Youth Championships 2026",       "2026-11-21", "2026-11-28", None),
     3378: ("ITTF Mixed Team World Cup Chengdu 2026",    "2026-11-29", "2026-12-06", None),

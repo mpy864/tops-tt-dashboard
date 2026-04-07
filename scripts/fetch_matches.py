@@ -77,12 +77,8 @@ WTT_2026_EVENT_IDS = {
     3352: ("WTT Feeder Düsseldorf II 2026",        "2026-11-27"),
     3269: ("WTT Feeder Gdansk 2026",               "2026-12-02"),
     3255: ("WTT Finals Hong Kong 2026",            "2026-12-13"),
-    # ── ITTF Major Events ─────────────────────────────────────────
-    # NOTE: These are on results.ittf.com API, not WTT API — handled by fetch_ittf_matches.py
-    # 3379: ITTF World Cup Macao 2026 (Apr 5)
-    # 3216: ITTF World Team Championships 2026 (May 10)
-    # 3377: ITTF World Youth Championships 2026 (Nov 28)
-    # 3378: ITTF Mixed Team World Cup 2026 (Dec 6)
+    # ── ITTF Major Events (on WTT API) ────────────────────────────
+    3379: ("ITTF World Cup Macao 2026",            "2026-04-05"),
     # ── WTT Youth Series ──────────────────────────────────────────
     3273: ("WTT Youth Contender Vadodara 2026",    "2026-01-05"),
     3274: ("WTT Youth Contender San Francisco 2026","2026-01-05"),
