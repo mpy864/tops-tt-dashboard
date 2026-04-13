@@ -1,0 +1,2506 @@
+[
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-senior-national-and-inter-state-table-tennis-championships-2022",
+    "tournament_id": 311,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-senior-national-and-inter-state-table-tennis-championships-2022",
+    "tournament_id": 311,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-senior-national-and-inter-state-table-tennis-championships-2022",
+    "tournament_id": 311,
+    "event_id": 38,
+    "event_name": "Women's Doubles",
+    "event_name_raw": "Women's Doubles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-senior-national-and-inter-state-table-tennis-championships-2022",
+    "tournament_id": 311,
+    "event_id": 37,
+    "event_name": "Men's Doubles",
+    "event_name_raw": "Men's Doubles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-senior-national-and-inter-state-table-tennis-championships-2022",
+    "tournament_id": 311,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles U-15"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles U-13"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles U-11"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles U-15"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles U-13"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles U-11"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 59,
+    "event_name": "Youth Boys Doubles U15",
+    "event_name_raw": "U - 15 Boys Doubles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 67,
+    "event_name": "Youth Boys Doubles U13",
+    "event_name_raw": "U - 13 Boys Doubles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 68,
+    "event_name": "Youth Girls Doubles U13",
+    "event_name_raw": "U - 13 Girls Doubles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2022",
+    "tournament_id": 310,
+    "event_id": 60,
+    "event_name": "Youth Girls Doubles U15",
+    "event_name_raw": "U - 15 Girls Doubles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-youth-and-junior-national-table-tennis-championships-2022",
+    "tournament_id": 308,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles U-17"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-youth-and-junior-national-table-tennis-championships-2022",
+    "tournament_id": 308,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles U-19"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-youth-and-junior-national-table-tennis-championships-2022",
+    "tournament_id": 308,
+    "event_id": 55,
+    "event_name": "Youth Boys Doubles U19",
+    "event_name_raw": "Youth Boys Doubles U-19"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-youth-and-junior-national-table-tennis-championships-2022",
+    "tournament_id": 308,
+    "event_id": 57,
+    "event_name": "Youth Boys Doubles U17",
+    "event_name_raw": "Youth Boys Doubles U-17"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-youth-and-junior-national-table-tennis-championships-2022",
+    "tournament_id": 308,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles U-19"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-youth-and-junior-national-table-tennis-championships-2022",
+    "tournament_id": 308,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles U-17"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-youth-and-junior-national-table-tennis-championships-2022",
+    "tournament_id": 308,
+    "event_id": 56,
+    "event_name": "Youth Girls Doubles U19",
+    "event_name_raw": "Youth Girls Doubles U-19"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-84th-inter-state-youth-and-junior-national-table-tennis-championships-2022",
+    "tournament_id": 308,
+    "event_id": 58,
+    "event_name": "Youth Girls Doubles U17",
+    "event_name_raw": "Youth Girls Doubles U-17"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles U-19"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles U-19"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles U-17"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles U-17"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles U-15"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles U-15"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles U-13"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles U-13"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles U-11"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-surat-",
+    "tournament_id": 307,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles U-11"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles U-19"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles U-19"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles U-17"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles U-17"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles U-15"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles U-15"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles U-13"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles U-13"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles U-11"
+  },
+  {
+    "season": "2022-23",
+    "slug": "utt-national-ranking-table-tennis-championships-2022-vadodara",
+    "tournament_id": 306,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles U-11"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 60,
+    "event_name": "Youth Girls Doubles U15",
+    "event_name_raw": "Youth Girls Doubles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 68,
+    "event_name": "Youth Girls Doubles U13",
+    "event_name_raw": "Youth Girls Doubles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 67,
+    "event_name": "Youth Boys Doubles U13",
+    "event_name_raw": "Youth Boys Doubles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2023",
+    "tournament_id": 326,
+    "event_id": 59,
+    "event_name": "Youth Boys Doubles U15",
+    "event_name_raw": "Youth Boys Doubles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-youth-and-junior-national-table-tennis-championships-2023",
+    "tournament_id": 325,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-youth-and-junior-national-table-tennis-championships-2023",
+    "tournament_id": 325,
+    "event_id": 55,
+    "event_name": "Youth Boys Doubles U19",
+    "event_name_raw": "Youth Boys Doubles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-youth-and-junior-national-table-tennis-championships-2023",
+    "tournament_id": 325,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-youth-and-junior-national-table-tennis-championships-2023",
+    "tournament_id": 325,
+    "event_id": 57,
+    "event_name": "Youth Boys Doubles U17",
+    "event_name_raw": "Youth Boys Doubles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-youth-and-junior-national-table-tennis-championships-2023",
+    "tournament_id": 325,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-youth-and-junior-national-table-tennis-championships-2023",
+    "tournament_id": 325,
+    "event_id": 56,
+    "event_name": "Youth Girls Doubles U19",
+    "event_name_raw": "Youth Girls Doubles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-youth-and-junior-national-table-tennis-championships-2023",
+    "tournament_id": 325,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-inter-state-youth-and-junior-national-table-tennis-championships-2023",
+    "tournament_id": 325,
+    "event_id": 58,
+    "event_name": "Youth Girls Doubles U17",
+    "event_name_raw": "Youth Girls Doubles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-senior-national-and-inter-state-table-tennis-championships-2023",
+    "tournament_id": 324,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-senior-national-and-inter-state-table-tennis-championships-2023",
+    "tournament_id": 324,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-senior-national-and-inter-state-table-tennis-championships-2023",
+    "tournament_id": 324,
+    "event_id": 38,
+    "event_name": "Women's Doubles",
+    "event_name_raw": "Women's Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-senior-national-and-inter-state-table-tennis-championships-2023",
+    "tournament_id": 324,
+    "event_id": 37,
+    "event_name": "Men's Doubles",
+    "event_name_raw": "Men's Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-85th-senior-national-and-inter-state-table-tennis-championships-2023",
+    "tournament_id": 324,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Panchkula-haryana",
+    "tournament_id": 323,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-Vijayawada",
+    "tournament_id": 322,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-vadodara",
+    "tournament_id": 321,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023-trivandrum",
+    "tournament_id": 319,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2023-24",
+    "slug": "aai-50th-all-india-inter-institutional-table-tennis-championships-2023",
+    "tournament_id": 318,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "aai-50th-all-india-inter-institutional-table-tennis-championships-2023",
+    "tournament_id": 318,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "aai-50th-all-india-inter-institutional-table-tennis-championships-2023",
+    "tournament_id": 318,
+    "event_id": 38,
+    "event_name": "Women's Doubles",
+    "event_name_raw": "Women's Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "aai-50th-all-india-inter-institutional-table-tennis-championships-2023",
+    "tournament_id": 318,
+    "event_id": 37,
+    "event_name": "Men's Doubles",
+    "event_name_raw": "Men's Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "aai-50th-all-india-inter-institutional-table-tennis-championships-2023",
+    "tournament_id": 318,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "U 19 Boys Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "U 19 Girls Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "U 17 Boys Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "U 17 Girls Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "U 15 Boys Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "U 15 Girls Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "U 13 Boys Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "U 13 Girls Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "U 11 Boys Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "U 11 Girls Singles"
+  },
+  {
+    "season": "2023-24",
+    "slug": "utt-national-ranking-table-tennis-championships-2023",
+    "tournament_id": 315,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "38th-national-games-2025",
+    "tournament_id": 380,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "38th-national-games-2025",
+    "tournament_id": 380,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "38th-national-games-2025",
+    "tournament_id": 380,
+    "event_id": 37,
+    "event_name": "Men's Doubles",
+    "event_name_raw": "Men's Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "38th-national-games-2025",
+    "tournament_id": 380,
+    "event_id": 38,
+    "event_name": "Women's Doubles",
+    "event_name_raw": "Women's Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "38th-national-games-2025",
+    "tournament_id": 380,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 67,
+    "event_name": "Youth Boys Doubles U13",
+    "event_name_raw": "Youth Boys Doubles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 59,
+    "event_name": "Youth Boys Doubles U15",
+    "event_name_raw": "Youth Boys Doubles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 68,
+    "event_name": "Youth Girls Doubles U13",
+    "event_name_raw": "Youth Girls Doubles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-sub-junior-and-cadet-national-table-tennis-championships--2024",
+    "tournament_id": 378,
+    "event_id": 60,
+    "event_name": "Youth Girls Doubles U15",
+    "event_name_raw": "Youth Girls Doubles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-senior-national-and-inter-state-table-tennis-championships--2024",
+    "tournament_id": 369,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-senior-national-and-inter-state-table-tennis-championships--2024",
+    "tournament_id": 369,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-senior-national-and-inter-state-table-tennis-championships--2024",
+    "tournament_id": 369,
+    "event_id": 38,
+    "event_name": "Women's Doubles",
+    "event_name_raw": "Women's Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-senior-national-and-inter-state-table-tennis-championships--2024",
+    "tournament_id": 369,
+    "event_id": 37,
+    "event_name": "Men's Doubles",
+    "event_name_raw": "Men's Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-senior-national-and-inter-state-table-tennis-championships--2024",
+    "tournament_id": 369,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-junior-and-youth-national-table-tennis-championships--2024",
+    "tournament_id": 368,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-junior-and-youth-national-table-tennis-championships--2024",
+    "tournament_id": 368,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-junior-and-youth-national-table-tennis-championships--2024",
+    "tournament_id": 368,
+    "event_id": 57,
+    "event_name": "Youth Boys Doubles U17",
+    "event_name_raw": "Youth Boys Doubles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-junior-and-youth-national-table-tennis-championships--2024",
+    "tournament_id": 368,
+    "event_id": 55,
+    "event_name": "Youth Boys Doubles U19",
+    "event_name_raw": "Youth Boys Doubles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-junior-and-youth-national-table-tennis-championships--2024",
+    "tournament_id": 368,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-junior-and-youth-national-table-tennis-championships--2024",
+    "tournament_id": 368,
+    "event_id": 56,
+    "event_name": "Youth Girls Doubles U19",
+    "event_name_raw": "Youth Girls Doubles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-junior-and-youth-national-table-tennis-championships--2024",
+    "tournament_id": 368,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-86th-inter-state-junior-and-youth-national-table-tennis-championships--2024",
+    "tournament_id": 368,
+    "event_id": 58,
+    "event_name": "Youth Girls Doubles U17",
+    "event_name_raw": "Youth Girls Doubles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-karnataka",
+    "tournament_id": 367,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "UTT%20National%20Ranking%20Table%20Tennis%20Championships-2024%20%28Kerala%29",
+    "tournament_id": 362,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "RBI%4090%2051st%20%20%20All%20India%20Inter-Institutional%20Table%20Tennis%20Championships-2024",
+    "tournament_id": 361,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "RBI%4090%2051st%20%20%20All%20India%20Inter-Institutional%20Table%20Tennis%20Championships-2024",
+    "tournament_id": 361,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "RBI%4090%2051st%20%20%20All%20India%20Inter-Institutional%20Table%20Tennis%20Championships-2024",
+    "tournament_id": 361,
+    "event_id": 37,
+    "event_name": "Men's Doubles",
+    "event_name_raw": "Men's Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "RBI%4090%2051st%20%20%20All%20India%20Inter-Institutional%20Table%20Tennis%20Championships-2024",
+    "tournament_id": 361,
+    "event_id": 38,
+    "event_name": "Women's Doubles",
+    "event_name_raw": "Women's Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "RBI%4090%2051st%20%20%20All%20India%20Inter-Institutional%20Table%20Tennis%20Championships-2024",
+    "tournament_id": 361,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Panchkula",
+    "tournament_id": 359,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-goa",
+    "tournament_id": 358,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2024-25",
+    "slug": "utt-national-ranking-table-tennis-championships-2024-Kangra",
+    "tournament_id": 343,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 67,
+    "event_name": "Youth Boys Doubles U13",
+    "event_name_raw": "Youth Boys Doubles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 59,
+    "event_name": "Youth Boys Doubles U15",
+    "event_name_raw": "Youth Boys Doubles  (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 60,
+    "event_name": "Youth Girls Doubles U15",
+    "event_name_raw": "Youth Girls Doubles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-inter-state-sub-junior-and-cadet-national-table-tennis-championships-2025",
+    "tournament_id": 481,
+    "event_id": 68,
+    "event_name": "Youth Girls Doubles U13",
+    "event_name_raw": "Youth Girls Doubles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-senior-national-inter-state-table-tennis-championships-2025",
+    "tournament_id": 480,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-senior-national-inter-state-table-tennis-championships-2025",
+    "tournament_id": 480,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-senior-national-inter-state-table-tennis-championships-2025",
+    "tournament_id": 480,
+    "event_id": 37,
+    "event_name": "Men's Doubles",
+    "event_name_raw": "Men's Doubles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-senior-national-inter-state-table-tennis-championships-2025",
+    "tournament_id": 480,
+    "event_id": 38,
+    "event_name": "Women's Doubles",
+    "event_name_raw": "Women's Doubles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-87th-senior-national-inter-state-table-tennis-championships-2025",
+    "tournament_id": 480,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "52nd-all-india-interinstitutional-table-tennis-championships2025",
+    "tournament_id": 463,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "52nd-all-india-interinstitutional-table-tennis-championships2025",
+    "tournament_id": 463,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "52nd-all-india-interinstitutional-table-tennis-championships2025",
+    "tournament_id": 463,
+    "event_id": 37,
+    "event_name": "Men's Doubles",
+    "event_name_raw": "Men's Doubles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "52nd-all-india-interinstitutional-table-tennis-championships2025",
+    "tournament_id": 463,
+    "event_id": 38,
+    "event_name": "Women's Doubles",
+    "event_name_raw": "Women's Doubles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "52nd-all-india-interinstitutional-table-tennis-championships2025",
+    "tournament_id": 463,
+    "event_id": 39,
+    "event_name": "Mixed Doubles",
+    "event_name_raw": "Mixed Doubles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-ranchi",
+    "tournament_id": 452,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-panchkula",
+    "tournament_id": 447,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-indore",
+    "tournament_id": 445,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-delhi",
+    "tournament_id": 434,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 53,
+    "event_name": "Youth Boys Singles U11",
+    "event_name_raw": "Youth Boys Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 54,
+    "event_name": "Youth Girls Singles U11",
+    "event_name_raw": "Youth Girls Singles (U-11)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 51,
+    "event_name": "Youth Boys Singles U13",
+    "event_name_raw": "Youth Boys Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 52,
+    "event_name": "Youth Girls Singles U13",
+    "event_name_raw": "Youth Girls Singles (U-13)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 49,
+    "event_name": "Youth Boys Singles U15",
+    "event_name_raw": "Youth Boys Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 50,
+    "event_name": "Youth Girls Singles U15",
+    "event_name_raw": "Youth Girls Singles (U-15)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 47,
+    "event_name": "Youth Boys Singles U17",
+    "event_name_raw": "Youth Boys Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 48,
+    "event_name": "Youth Girls Singles U17",
+    "event_name_raw": "Youth Girls Singles (U-17)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 45,
+    "event_name": "Youth Boys Singles U19",
+    "event_name_raw": "Youth Boys Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 46,
+    "event_name": "Youth Girls Singles U19",
+    "event_name_raw": "Youth Girls Singles (U-19)"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 35,
+    "event_name": "Men's Singles",
+    "event_name_raw": "Men's Singles"
+  },
+  {
+    "season": "2025-26",
+    "slug": "utt-national-ranking-table-tennis-championships-2025-",
+    "tournament_id": 429,
+    "event_id": 36,
+    "event_name": "Women's Singles",
+    "event_name_raw": "Women's Singles"
+  }
+]

@@ -229,8 +229,7 @@ function MiniBar({ wins, losses, color }) {
 
 // ─── WL breakdown section ────────────────────────────────────────────────────
 
-function WLBreakdown({ metrics, color }) {
-  const [filter, setFilter] = useState('rank');
+function WLBreakdown({ metrics, color, filter, onFilterChange }) {
   if (!metrics) return null;
 
   const buckets = {
@@ -245,7 +244,7 @@ function WLBreakdown({ metrics, color }) {
     <div>
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
         {WL_FILTERS.map(f => (
-          <button key={f.id} onClick={() => setFilter(f.id)} style={{
+          <button key={f.id} onClick={() => onFilterChange(f.id)} style={{
             fontSize: 10, padding: '3px 8px', borderRadius: 99, border: '1px solid',
             borderColor: filter === f.id ? color : '#e2e8f0',
             background: filter === f.id ? color : 'white',
@@ -398,6 +397,7 @@ export default function H2HDashboard() {
   const [loading, setLoading]           = useState(true);
   const [fetching, setFetching]         = useState(false);
   const [expandedSection, setExpandedSection] = useState('stats');
+  const [wlFilter, setWlFilter]               = useState('rank');
 
   // Load player list
   useEffect(() => {
@@ -770,7 +770,7 @@ export default function H2HDashboard() {
                     <p style={{ fontSize: 11, fontWeight: 700, color: PLAYER_COLORS[i], marginBottom: 10 }}>
                       {p.name.split(' ')[0]}
                     </p>
-                    <WLBreakdown metrics={p.metrics} color={PLAYER_COLORS[i]} />
+                    <WLBreakdown metrics={p.metrics} color={PLAYER_COLORS[i]} filter={wlFilter} onFilterChange={setWlFilter} />
                   </div>
                 ))}
               </div>
