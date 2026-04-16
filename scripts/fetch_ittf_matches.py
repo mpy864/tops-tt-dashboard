@@ -252,7 +252,7 @@ def ensure_players_in_db(supabase: Client, matches: list[dict]) -> None:
                         "player_name":  p.get("PlayerName"),
                         "country_code": p.get("CountryCode"),
                         "country_name": p.get("CountryName"),
-                        "gender":       p.get("Gender"),
+                        "gender":       {"Men":"M","M":"M","Male":"M","Women":"W","Woman":"W","W":"W","F":"W","Female":"W"}.get(p.get("Gender") or "", None),
                         "dob":          dob,
                         "handedness":   p.get("Handedness"),
                         "grip":         p.get("Grip"),

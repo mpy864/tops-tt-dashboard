@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase.js';
+import AuthBar from './AuthBar.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine
@@ -8,10 +10,6 @@ import {
   ChevronDown, ChevronUp, Search, Star, Zap, Activity, ArrowRight
 } from 'lucide-react';
 
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_ANON_KEY
-);
 
 function parseScoresForPlayer(str, isComp1) {
   if (!str || str === 'N/A')
@@ -26,6 +24,30 @@ function parseScoresForPlayer(str, isComp1) {
     if (p > o) gW++; else gL++;
   }
   return { gamesWon: gW, gamesLost: gL, pointsWon: pW, pointsLost: pL, totalGames: gW + gL };
+}
+
+function parseGame1Won(str, isComp1) {
+  if (!str || str === 'N/A') return null;
+  const first = str.split(',')[0]?.trim();
+  if (!first) return null;
+  const [a, b] = first.split('-').map(Number);
+  if (isNaN(a) || isNaN(b)) return null;
+  const [p, o] = isComp1 ? [a, b] : [b, a];
+  return p > o;
+}
+
+function countDeuceGames(str, isComp1) {
+  if (!str || str === 'N/A') return { won: 0, lost: 0 };
+  let won = 0, lost = 0;
+  for (const g of str.split(',').map(s => s.trim())) {
+    const [a, b] = g.split('-').map(Number);
+    if (isNaN(a) || isNaN(b)) continue;
+    if (Math.min(a, b) >= 10 && Math.abs(a - b) === 2) {
+      const [p, o] = isComp1 ? [a, b] : [b, a];
+      if (p > o) won++; else lost++;
+    }
+  }
+  return { won, lost };
 }
 
 function checkComeback(str, isComp1, won) {
@@ -44,18 +66,20 @@ function fmtMonthYear(date) {
 
 function cleanCompetitionName(name) {
   if (!name) return 'Unknown';
-  const match = name.match(/^(.*?\d{4})/);
-  return match ? match[1].trim() : name;
+  return name.replace(/\s+presented\s+by\s+.*/i, '').trim();
 }
 
 function cleanRound(round) {
   if (!round || round === 'N/A') return null;
   const rofMatch = round.match(/Round of \d+/i);
   if (rofMatch) return rofMatch[0];
-  const common = ['Semi-Final', 'Quarter-Final', 'Final', 'Group Stage', 'Qualifying'];
-  for (const r of common) {
-    if (round.toLowerCase().includes(r.toLowerCase())) return r;
-  }
+  const low = round.toLowerCase();
+  // Check semi/quarter BEFORE final — WTT DB uses no-hyphen variants ("Semifinal", "Quarterfinal")
+  if (low.includes('semifinal') || low.includes('semi-final') || low.includes('semi final')) return 'Semi-Final';
+  if (low.includes('quarterfinal') || low.includes('quarter-final') || low.includes('quarter final')) return 'Quarter-Final';
+  if (low.includes('final')) return 'Final';
+  if (low.includes('group')) return 'Group Stage';
+  if (low.includes('qualifying')) return 'Qualifying';
   const parts = round.split(' - ');
   return parts.length > 1 ? parts[parts.length - 2] || null : null;
 }
@@ -182,7 +206,9 @@ function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurr
 
   const winRate     = total > 0 ? (wins.length / total) * 100 : 0;
   const upsetYield  = wins.length > 0 ? (wins.filter(m => m.isUpset).length / wins.length) * 100 : 0;
-  const clutchIndex = wins.length > 0 ? (wins.filter(m => m.isClutch).length / wins.length) * 100 : 0;
+  // Clutch Index = win rate in deciding-game matches (3-2 or 4-3), both wins and losses
+  const clutchGames = filtered.filter(m => m.gamesLost === m.gamesWon - 1 || m.gamesLost === m.gamesWon + 1);
+  const clutchIndex = clutchGames.length > 0 ? (clutchGames.filter(m => m.result === 'W').length / clutchGames.length) * 100 : null;
 
   let td = 0, dc = 0;
   for (const m of filtered) { if (m.pointDiff != null) { td += m.pointDiff; dc++; } }
@@ -198,6 +224,162 @@ function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurr
   const straightSetsWins   = wins.filter(m => m.isStraightWin).length;
   const straightSetsLosses = losses.filter(m => m.isStraightLoss).length;
   const comebackWins       = wins.filter(m => m.isComeback).length;
+
+  // --- Performance vs Worse-Ranked ---
+  // All comparisons use playerRankAtMatch (rank at the time of the match), not current rank
+  const ranked = filtered.filter(m => m.opponentRank !== 999 && m.playerRankAtMatch && m.playerRankAtMatch !== 999);
+  const vsLower  = ranked.filter(m => m.opponentRank > m.playerRankAtMatch);
+  const vsHigher = ranked.filter(m => m.opponentRank < m.playerRankAtMatch);
+  const vsLowerWins   = vsLower.filter(m => m.result === 'W').length;
+  const vsHigherWins  = vsHigher.filter(m => m.result === 'W').length;
+
+  const dominanceRate  = vsLower.length  > 0 ? (vsLowerWins  / vsLower.length)  * 100 : null;
+  const upsetRate      = vsHigher.length > 0 ? (vsHigherWins / vsHigher.length) * 100 : null;
+  const bananaSkinMatches = losses.filter(m => m.opponentRank !== 999 && m.playerRankAtMatch && m.opponentRank > m.playerRankAtMatch);
+  const bananaSkinRate = losses.length > 0 ? (bananaSkinMatches.length / losses.length) * 100 : 0;
+
+  // Hold Rate: win% vs players ranked 20+ below at match time
+  const vsMuchLower     = ranked.filter(m => m.opponentRank > m.playerRankAtMatch + 20);
+  const holdRate        = vsMuchLower.length > 0 ? (vsMuchLower.filter(m => m.result === 'W').length / vsMuchLower.length) * 100 : null;
+
+  // --- Pressure & Context ---
+  // Rank Proximity Win Rate (opponent within ±10 ranks at match time)
+  const vsProximity      = ranked.filter(m => Math.abs(m.opponentRank - m.playerRankAtMatch) <= 10);
+  const proximityWinRate = vsProximity.length > 0 ? (vsProximity.filter(m => m.result === 'W').length / vsProximity.length) * 100 : null;
+
+  // Comfort Zone Index: how much better vs weaker than vs stronger (ratio)
+  const comfortZoneIndex = (dominanceRate !== null && upsetRate !== null && upsetRate > 0)
+    ? +(dominanceRate / upsetRate).toFixed(2) : null;
+
+  // --- Historical Rank-Based Peer & Ambition Zones ---
+  // Uses BOTH player and opponent rank at the time of the match (not current rank)
+  const historicalRanked = filtered.filter(m => m.opponentRank !== 999 && m.playerRankAtMatch && m.playerRankAtMatch !== 999);
+  const peerMatches      = historicalRanked.filter(m => Math.abs(m.opponentRank - m.playerRankAtMatch) <= 20);
+  const ambitionMatches  = historicalRanked.filter(m => m.playerRankAtMatch - m.opponentRank > 20); // opponent 20+ higher ranked
+  const peerWins         = peerMatches.filter(m => m.result === 'W').length;
+  const ambitionWins     = ambitionMatches.filter(m => m.result === 'W').length;
+  const peerWinRate      = peerMatches.length > 0 ? (peerWins / peerMatches.length) * 100 : null;
+  const ambitionWinRate  = ambitionMatches.length > 0 ? (ambitionWins / ambitionMatches.length) * 100 : null;
+
+  // Momentum Sensitivity: win rate entering match on 3-win vs 3-loss streak
+  const sortedChron = [...filtered].sort((a, b) => a.rawDate - b.rawDate);
+  let hotWins = 0, hotTotal = 0, coldWins = 0, coldTotal = 0;
+  const hotMatches = [], coldMatches = [];
+  for (let i = 3; i < sortedChron.length; i++) {
+    const prior = sortedChron.slice(i - 3, i);
+    const curr  = sortedChron[i];
+    if (prior.every(m => m.result === 'W')) {
+      hotTotal++; hotMatches.push(curr);
+      if (curr.result === 'W') hotWins++;
+    } else if (prior.every(m => m.result === 'L')) {
+      coldTotal++; coldMatches.push(curr);
+      if (curr.result === 'W') coldWins++;
+    }
+  }
+  const momentumHotRate  = hotTotal  >= 3 ? (hotWins  / hotTotal)  * 100 : null;
+  const momentumColdRate = coldTotal >= 3 ? (coldWins / coldTotal) * 100 : null;
+
+  // --- Current Form (last 10 matches by date) ---
+  const sortedDesc = [...filtered].sort((a, b) => b.rawDate - a.rawDate);
+  const currentForm = sortedDesc.slice(0, 10).map(m => m.result);
+
+  // --- Points Per Game ---
+  let totalPtsWon = 0, totalGamesPlayed = 0;
+  for (const m of filtered) {
+    if (m.totalGames > 0) { totalPtsWon += (m.pointsWon || 0); totalGamesPlayed += m.totalGames; }
+  }
+  const pointsPerGame = totalGamesPlayed > 0 ? totalPtsWon / totalGamesPlayed : null;
+
+  // --- Giant Killer Index ---
+  const vsTop20 = filtered.filter(m => m.opponentRank !== 999 && m.opponentRank <= 20);
+  const vsTop50 = filtered.filter(m => m.opponentRank !== 999 && m.opponentRank <= 50);
+  const giantKillerTop20 = vsTop20.length > 0 ? (vsTop20.filter(m => m.result === 'W').length / vsTop20.length) * 100 : null;
+  const giantKillerTop50 = vsTop50.length > 0 ? (vsTop50.filter(m => m.result === 'W').length / vsTop50.length) * 100 : null;
+
+  // --- Biggest Rank Scalp ---
+  const upsetWinMatches = wins.filter(m => m.opponentRank !== 999 && m.playerRankAtMatch && m.opponentRank < m.playerRankAtMatch);
+  const biggestScalpRank = upsetWinMatches.length > 0 ? Math.min(...upsetWinMatches.map(m => m.opponentRank)) : null;
+  const biggestScalpMatch = biggestScalpRank !== null ? [upsetWinMatches.find(m => m.opponentRank === biggestScalpRank)] : [];
+
+  // --- Lead Protection & Blown Lead ---
+  const wonGame1Matches = filtered.filter(m => m.wonGame1 === true);
+  const leadProtectionRate = wonGame1Matches.length > 0 ? (wonGame1Matches.filter(m => m.result === 'W').length / wonGame1Matches.length) * 100 : null;
+  const blownLeadMatches   = wonGame1Matches.filter(m => m.result === 'L');
+  const blownLeadRate      = wonGame1Matches.length > 0 ? (blownLeadMatches.length / wonGame1Matches.length) * 100 : null;
+
+  // --- Deciding Game Win Rate (matches going to game 5 or 7) ---
+  const decidingMatches = filtered.filter(m => m.totalGames === 5 || m.totalGames === 7);
+  const decidingWinRate = decidingMatches.length > 0 ? (decidingMatches.filter(m => m.result === 'W').length / decidingMatches.length) * 100 : null;
+
+  // --- Deuce Win Rate ---
+  let deuceWon = 0, deuceTotal = 0;
+  const deuceMatches = [];
+  for (const m of filtered) {
+    if (m.deuceGames) {
+      const d = m.deuceGames.won + m.deuceGames.lost;
+      if (d > 0) { deuceMatches.push(m); deuceWon += m.deuceGames.won; deuceTotal += d; }
+    }
+  }
+  const deuceWinRate = deuceTotal > 0 ? (deuceWon / deuceTotal) * 100 : null;
+
+  // --- Tournament Depth ---
+  // Normalise round string (handles raw WTT round_phase like "Round 1 - Semi-Final")
+  const normaliseRound = r => {
+    if (!r || r === 'N/A') return null;
+    const cr = cleanRound(r);                    // re-use existing parser
+    if (cr) return cr;
+    const low = r.toLowerCase();
+    if (low.includes('final') && !low.includes('semi') && !low.includes('quarter')) return 'Final';
+    if (low.includes('semi'))    return 'Semi-Final';
+    if (low.includes('quarter')) return 'Quarter-Final';
+    if (low.includes('group'))   return 'Group Stage';
+    return r;
+  };
+
+  const ROUND_DEPTH  = { 'Final': 7, 'Semi-Final': 6, 'Quarter-Final': 5, 'Round of 16': 4, 'Round of 32': 3, 'Round of 64': 2, 'Round of 128': 1, 'Group Stage': 1 };
+  const DEPTH_LABEL  = { 7: 'Final', 6: 'SF', 5: 'QF', 4: 'R/16', 3: 'R/32', 2: 'R/64', 1: 'Group Stage' };
+  const SFQF_SET  = new Set(['Semi-Final', 'Quarter-Final']);  // mutually exclusive from Finals
+  const EARLY_SET = new Set(['Round of 16', 'Round of 32', 'Round of 64', 'Round of 128', 'Group Stage']);
+
+  const normRound      = m => normaliseRound(m.round);
+  const finalsMatches   = filtered.filter(m => normRound(m) === 'Final');
+  const knockoutMatches = filtered.filter(m => SFQF_SET.has(normRound(m)));   // QF + SF only
+  const groupMatches    = filtered.filter(m => { const nr = normRound(m); return nr && EARLY_SET.has(nr); });
+
+  const finalsWinRate   = finalsMatches.length   > 0 ? (finalsMatches.filter(m => m.result === 'W').length   / finalsMatches.length)   * 100 : null;
+  const knockoutWinRate = knockoutMatches.length  > 0 ? (knockoutMatches.filter(m => m.result === 'W').length / knockoutMatches.length)  * 100 : null;
+  const groupWinRate    = groupMatches.length     > 0 ? (groupMatches.filter(m => m.result === 'W').length    / groupMatches.length)     * 100 : null;
+
+  const tournamentDepths = {};
+  const tournamentGrade  = {};
+  for (const m of filtered) {
+    const depth = ROUND_DEPTH[normRound(m)];
+    if (depth) {
+      const key = m.tournamentKey;
+      if (!tournamentDepths[key] || depth > tournamentDepths[key]) {
+        tournamentDepths[key] = depth;
+        tournamentGrade[key]  = m.eventTier != null ? String(m.eventTier) : 'Unknown';
+      }
+    }
+  }
+  const depthValues   = Object.values(tournamentDepths);
+  const avgRoundDepth = depthValues.length > 0 ? depthValues.reduce((s, v) => s + v, 0) / depthValues.length : null;
+  const avgRoundLabel = avgRoundDepth !== null ? (DEPTH_LABEL[Math.round(avgRoundDepth)] || `Rd ${avgRoundDepth.toFixed(1)}`) : null;
+
+  // Avg round by event grade
+  const gradeDepthMap = {};
+  for (const [key, depth] of Object.entries(tournamentDepths)) {
+    const grade = tournamentGrade[key] || 'Unknown';
+    if (!gradeDepthMap[grade]) gradeDepthMap[grade] = [];
+    gradeDepthMap[grade].push(depth);
+  }
+  const avgRoundByGrade = Object.entries(gradeDepthMap)
+    .filter(([g]) => g !== 'Unknown')
+    .sort(([a], [b]) => parseInt(a) - parseInt(b))
+    .map(([grade, vals]) => {
+      const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+      return { grade, avg, label: DEPTH_LABEL[Math.round(avg)] || `Rd ${avg.toFixed(1)}`, count: vals.length };
+    });
 
   const rankBuckets = [
     { label: 'Top 20',      min: 0,   max: 20   },
@@ -281,10 +463,62 @@ function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurr
       straightWins:   wins.filter(m => m.isStraightWin),
       straightLosses: losses.filter(m => m.isStraightLoss),
       comebacks:      wins.filter(m => m.isComeback),
-      clutch:         wins.filter(m => m.isClutch),
+      clutch:         clutchGames,
+    },
+    currentForm, pointsPerGame,
+    rankContext: {
+      dominanceRate, bananaSkinRate, holdRate, upsetRate,
+      vsLowerMatches: vsLower, vsHigherMatches: vsHigher, bananaSkinMatches, holdMatches: vsMuchLower,
+      vsLowerCount: vsLower.length, vsHigherCount: vsHigher.length,
+      proximityWinRate, comfortZoneIndex,
+      vsProximityMatches: vsProximity,
+      vsRankedMatches: [...vsLower, ...vsHigher].sort((a, b) => b.rawDate - a.rawDate),
+      peerWinRate, peerMatches, ambitionWinRate, ambitionMatches,
+      momentumHotRate, momentumColdRate, hotTotal, coldTotal, hotMatches, coldMatches,
+      giantKillerTop20, giantKillerTop50, vsTop20, vsTop50,
+      biggestScalpRank, biggestScalpMatch,
+      leadProtectionRate, blownLeadRate, blownLeadMatches, wonGame1Matches,
+      decidingWinRate, decidingMatches, deuceWinRate, deuceTotal, deuceMatches,
+      finalsWinRate, knockoutWinRate, groupWinRate,
+      finalsMatches, knockoutMatches, groupMatches,
+      avgRoundLabel, depthValues, avgRoundByGrade,
     },
     allMatches: filtered,
   };
+}
+
+function nsNarrative(key, value) {
+  if (value == null) return null;
+  const v = typeof value === 'number' ? value : parseFloat(value);
+  if (isNaN(v)) return null;
+  switch (key) {
+    case 'winrate':
+      return v >= 65 ? `Winning ${v.toFixed(0)}% — dominant across this period`
+           : v >= 50 ? `Above 50% — winning more than losing across this window`
+           : v >= 40 ? `Below breakeven — more losses than wins in this period`
+           :           `Under 40% — a difficult stretch to understand and address`;
+    case 'upsetrate':
+      return v >= 40 ? `Beating ${v.toFixed(0)}% of higher-ranked opponents — a genuine giant-killer`
+           : v >= 25 ? `Punching above weight in roughly 1 of every 4 higher-ranked contests`
+           : v >= 10 ? `Occasionally threatening stronger opposition — ambition is developing`
+           :           `Rarely capitalising against higher-ranked players`;
+    case 'dominance':
+      return v >= 80 ? `${v.toFixed(0)}% against lower-ranked opponents — a rock-solid baseline`
+           : v >= 60 ? `Holding ground in the majority of expected wins`
+           : v >= 40 ? `Dropping too many must-win matches — consistency is a concern`
+           :           `Losing the majority of expected wins — a reliability issue`;
+    case 'clutch':
+      return v >= 65 ? `Converting ${v.toFixed(0)}% of deciding matches — a closer who delivers`
+           : v >= 50 ? `Slightly ahead in five-setters — composed when it counts`
+           : v >= 35 ? `Losing the edge in tight matches — mental game to develop`
+           :           `Below 35% in deciding matches — pressure a current challenge`;
+    case 'knockout':
+      return v === 0  ? `No knockout wins yet — deep runs are the next milestone`
+           : v >= 60  ? `${v.toFixed(0)}% in QF/SF — a genuine late-stage threat`
+           : v >= 40  ? `Close to half of knockout opportunities converted`
+           :            `Below 50% in knockouts — exits before the business end`;
+    default: return null;
+  }
 }
 
 function computeVerdict(w) {
@@ -421,7 +655,7 @@ function MatchList({ matches }) {
   );
 }
 
-function WLBarRows({ label, wins, losses, winPct, isOpen, onToggle, children }) {
+function WLBarRows({ label, sublabel, wins, losses, winPct, isOpen, onToggle, children }) {
   const total = wins + losses;
   const HL = isOpen ? { backgroundColor: 'rgba(239,246,255,0.5)' } : {};
   return (
@@ -429,8 +663,8 @@ function WLBarRows({ label, wins, losses, winPct, isOpen, onToggle, children }) 
       <tr onClick={() => total > 0 && onToggle()}
         style={{ cursor: total > 0 ? 'pointer' : 'default', borderBottom: '0.5px solid #f1f5f9', ...HL }}
         className="transition-colors hover:bg-slate-50/60">
-        <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)' }}>{label}</td>
-        <td style={{ padding: '10px 14px' }} />
+        <td style={{ padding: '10px 14px', fontSize: 13, fontWeight: 500, color: 'var(--color-text-primary)', whiteSpace: 'nowrap' }}>{label}</td>
+        <td style={{ padding: '10px 14px', fontSize: 10, color: '#94a3b8' }}>{sublabel || ''}</td>
         <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
           {total > 0 ? (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -477,11 +711,13 @@ function WindowToggle({ value, onChange }) {
   );
 }
 
-function DataSourceToggle({ value, onChange }) {
+function DataSourceToggle({ value, onChange, showDomestic }) {
   const opts = [
     { id: 'wtt',      label: 'WTT' },
-    { id: 'domestic', label: 'DOM' },
-    { id: 'both',     label: 'BOTH' },
+    ...(showDomestic ? [
+      { id: 'domestic', label: 'DOM' },
+      { id: 'both',     label: 'BOTH' },
+    ] : []),
   ];
   return (
     <div className="flex items-center gap-1">
@@ -512,7 +748,7 @@ function TournamentFormTab({ matchLedger, showAll, onToggleAll }) {
     for (const m of matchLedger) {
       const key = m.isDomestic ? `dom__${m.tournamentKey}` : `wtt__${m.tournamentKey}`;
       if (!map[key]) map[key] = {
-        key, name: m.tournament, isDomestic: m.isDomestic,
+        key, name: cleanCompetitionName(m.tournament), isDomestic: m.isDomestic,
         matches: [], latestDate: new Date(0), deepest: null, deepestOrder: 999,
       };
       map[key].matches.push(m);
@@ -527,7 +763,7 @@ function TournamentFormTab({ matchLedger, showAll, onToggleAll }) {
     return Object.values(map).sort((a, b) => b.latestDate - a.latestDate);
   }, [matchLedger]);
 
-  const display = showAll ? groups.slice(0, 12) : groups.slice(0, 5);
+  const display = showAll ? groups : groups.slice(0, 5);
 
   if (groups.length === 0)
     return <p className="text-sm text-slate-400 px-5 py-4">No matches found.</p>;
@@ -591,7 +827,7 @@ function TournamentFormTab({ matchLedger, showAll, onToggleAll }) {
             className="text-sm text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1">
             {showAll
               ? <><ChevronUp size={13} /> Show less</>
-              : <><ChevronDown size={13} /> Show more ({Math.min(12, groups.length)} tournaments)</>}
+              : <><ChevronDown size={13} /> Show all {groups.length} tournaments</>}
           </button>
         </div>
       )}
@@ -607,6 +843,8 @@ const TABS = [
 ];
 
 export default function DynamicOKRDashboard() {
+  const { allowedIttfIds } = useAuth();
+  const [allPlayersMerged, setAllPlayersMerged] = useState([]);
   const [players, setPlayers]               = useState([]);
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [playerMetrics, setPlayerMetrics]   = useState(null);
@@ -616,7 +854,14 @@ export default function DynamicOKRDashboard() {
   const [fetching, setFetching]             = useState(false);
   const [error, setError]                   = useState(null);
   const [searchTerm, setSearchTerm]         = useState('');
-  const [filteredPlayers, setFilteredPlayers] = useState([]);
+  const [searchOpen, setSearchOpen]         = useState(false);
+  const [filterGender, setFilterGender]     = useState('');
+  const [filterRank, setFilterRank]         = useState('');
+  const [filterCountry, setFilterCountry]   = useState('');
+  const [filterAge, setFilterAge]           = useState('');
+  const [filterStyle, setFilterStyle]       = useState('');
+  const [filterGrip, setFilterGrip]         = useState('');
+  const searchRef                           = useRef(null);
   const [activeTab, setActiveTab]           = useState('rank');
   const [dataSource, setDataSource]         = useState('wtt');
   const [rankWindow, setRankWindow]         = useState('6M');
@@ -628,6 +873,8 @@ export default function DynamicOKRDashboard() {
   const [openCompBar, setOpenCompBar]       = useState(null);
   const [openNationBar, setOpenNationBar]   = useState(null);
   const [openDna, setOpenDna]               = useState(null);
+  const [openRankCtx, setOpenRankCtx]       = useState(null);
+  const [openPerfSections, setOpenPerfSections] = useState(new Set());
   const [formShowAll, setFormShowAll]       = useState(false);
   const tabContentRef = useRef(null);
 
@@ -646,17 +893,99 @@ export default function DynamicOKRDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const { data, error: err } = await supabase
-          .from('mv_player_selector_singles')
-          .select('player_id,player_name,gender,rank,gender_label')
-          .order('rank', { ascending: true });
-        if (err) throw err;
-        setPlayers(data || []);
-        setFilteredPlayers(data || []);
-        if (data?.length > 0) { setSelectedPlayer(data[0].player_id); setPlayerName(data[0].player_name); }
+        // Get latest ranking date
+        const { data: latestRow } = await supabase
+          .from('rankings_singles_normalized')
+          .select('ranking_date').order('ranking_date', { ascending: false }).limit(1);
+        const latestDate = latestRow?.[0]?.ranking_date;
+        if (!latestDate) throw new Error('No ranking data found');
+
+        // Fetch top 500 ranked players (men + women combined, both use rank 1-500 in their own series)
+        const { data: rankRows, error: re } = await supabase
+          .from('rankings_singles_normalized')
+          .select('player_id,rank')
+          .eq('ranking_date', latestDate)
+          .lte('rank', 500)
+          .order('rank', { ascending: true })
+          .limit(1100); // up to 500 men + 500 women
+        if (re) throw re;
+
+        const ids = (rankRows || []).map(r => r.player_id);
+        const rankMap = {};
+        for (const r of (rankRows || [])) rankMap[r.player_id] = r.rank;
+
+        // Fetch player profiles for those IDs (fetch in two batches if needed to avoid URL limits)
+        const batchSize = 500;
+        let profileRows = [];
+        for (let i = 0; i < ids.length; i += batchSize) {
+          const batch = ids.slice(i, i + batchSize);
+          const { data: batchData, error: pe } = await supabase
+            .from('wtt_players')
+            .select('ittf_id,player_name,country_code,dob,handedness,grip,gender')
+            .in('ittf_id', batch)
+            .limit(batchSize + 10);
+          if (pe) throw pe;
+          profileRows = profileRows.concat(batchData || []);
+        }
+
+        const normGender = g => {
+          if (!g) return '';
+          const l = g.toLowerCase();
+          if (l === 'm' || l === 'male' || l === 'men') return 'M';
+          if (l === 'w' || l === 'f' || l === 'female' || l === 'women') return 'W';
+          return g;
+        };
+
+        const merged = profileRows
+          .filter(p => rankMap[p.ittf_id])
+          .map(p => {
+            const g = normGender(p.gender);
+            return {
+              player_id:    p.ittf_id,
+              player_name:  p.player_name,
+              rank:         Number(rankMap[p.ittf_id]),
+              gender:       g,
+              gender_label: g === 'M' ? 'Men' : g === 'W' ? 'Women' : (p.gender || ''),
+              country_code: p.country_code || '',
+              dob:          p.dob || null,
+              handedness:   p.handedness || '',
+              grip:         p.grip || '',
+            };
+          })
+          .sort((a, b) => a.rank - b.rank);
+
+        setAllPlayersMerged(merged);
       } catch (err) { setError(err.message); }
       finally { setLoading(false); }
     })();
+  }, []);
+
+  // Filter players reactively whenever the full list or allowedIttfIds changes
+  useEffect(() => {
+    if (allPlayersMerged.length === 0) return;
+    const visible = allowedIttfIds
+      ? allPlayersMerged.filter(p => allowedIttfIds.includes(String(p.player_id)))
+      : allPlayersMerged;
+    setPlayers(visible);
+    setSelectedPlayer(p => {
+      if (!p) {
+        const first = visible.find(pl => pl.gender === 'M') || visible[0];
+        return first?.player_id ?? null;
+      }
+      if (allowedIttfIds && !allowedIttfIds.includes(String(p))) {
+        const first = visible.find(pl => pl.gender === 'M') || visible[0];
+        return first?.player_id ?? null;
+      }
+      return p;
+    });
+  }, [allPlayersMerged, allowedIttfIds]);
+
+  useEffect(() => {
+    const handleClickOutside = e => {
+      if (searchRef.current && !searchRef.current.contains(e.target)) setSearchOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -777,6 +1106,7 @@ export default function DynamicOKRDashboard() {
       const matchDate = new Date(m.event_date);
       const opponentRank        = oppH.find(r => new Date(r.ranking_date) <= matchDate)?.rank ?? 999;
       const opponentCurrentRank = oppH[0]?.rank ?? 999;
+      const playerRankAtMatch   = rankings?.find(r => new Date(r.ranking_date) <= matchDate)?.rank ?? playerCurrentRank;
       const { gamesWon, gamesLost, pointsWon, pointsLost, totalGames } =
         parseScoresForPlayer(m.game_scores, isComp1);
       const pointDiff = totalGames > 0 ? (pointsWon - pointsLost) / totalGames : null;
@@ -788,7 +1118,7 @@ export default function DynamicOKRDashboard() {
         opponentDob: oppP?.dob || null,
         opponentHandedness: oppP?.handedness || null,
         opponentGrip: oppP?.grip || null,
-        opponentRank, opponentCurrentRank,
+        opponentRank, opponentCurrentRank, playerRankAtMatch,
         tournament: eventInfo?.event_name || 'Unknown',
         tournamentKey: String(m.event_id),
         eventTier: eventInfo?.tops_grade ?? null,
@@ -796,19 +1126,21 @@ export default function DynamicOKRDashboard() {
         score: m.game_scores || 'N/A',
         result: won ? 'W' : 'L',
         isComp1,
-        isUpset:       won && opponentRank < playerCurrentRank,
+        isUpset:       won && opponentRank < playerRankAtMatch,
         isClutch:      won && gamesLost === gamesWon - 1,
         isStraightWin: won && gamesLost === 0 && totalGames >= 3,
         isStraightLoss:!won && gamesWon === 0 && totalGames >= 3,
         isComeback:    checkComeback(m.game_scores, isComp1, won),
-        gamesWon, gamesLost, pointDiff,
+        gamesWon, gamesLost, totalGames, pointsWon, pointDiff,
+        wonGame1:   parseGame1Won(m.game_scores, isComp1),
+        deuceGames: countDeuceGames(m.game_scores, isComp1),
         isDomestic: false,
       };
     });
 
     const analyticsRounds = new Set(['FINAL','SF','QF','R/16','R/32','R/64']);
     const domLedger = (domMatches || [])
-      .filter(m => m.score_raw && analyticsRounds.has(m.round))
+      .filter(m => analyticsRounds.has(m.round))
       .map(m => {
         const isP1     = m.wtt_player1_id === pidStr;
         const me       = isP1 ? m.player1_name : m.player2_name;
@@ -820,6 +1152,7 @@ export default function DynamicOKRDashboard() {
         const rawDate  = parseDomesticDate(m.match_datetime, m.season);
         const opponentRank        = oppH[0]?.rank ?? 999;
         const opponentCurrentRank = oppH[0]?.rank ?? 999;
+        const playerRankAtMatch   = rankings?.find(r => new Date(r.ranking_date) <= rawDate)?.rank ?? playerCurrentRank;
 
         let gW = 0, gL = 0, pW = 0, pL = 0, scoreStr = '';
         if (m.game_scores?.length) {
@@ -846,7 +1179,7 @@ export default function DynamicOKRDashboard() {
           opponentDob: oppP?.dob || null,
           opponentHandedness: oppP?.handedness || null,
           opponentGrip: oppP?.grip || null,
-          opponentRank, opponentCurrentRank,
+          opponentRank, opponentCurrentRank, playerRankAtMatch,
           tournament: slugToName(m.slug),
           tournamentKey: `${m.season}__${m.slug}`,
           eventTier: 6,
@@ -854,12 +1187,14 @@ export default function DynamicOKRDashboard() {
           score: scoreStr,
           result: won ? 'W' : 'L',
           isComp1: true,
-          isUpset:       won && opponentRank < playerCurrentRank,
+          isUpset:       won && opponentRank < playerRankAtMatch,
           isClutch:      won && gL === gW - 1,
           isStraightWin: won && gL === 0 && totalGames >= 3,
           isStraightLoss:!won && gW === 0 && totalGames >= 3,
           isComeback:    false,
-          gamesWon: gW, gamesLost: gL, pointDiff,
+          gamesWon: gW, gamesLost: gL, totalGames, pointsWon: pW, pointDiff,
+          wonGame1:   scoreStr ? parseGame1Won(scoreStr, true) : null,
+          deuceGames: scoreStr ? countDeuceGames(scoreStr, true) : { won: 0, lost: 0 },
           isDomestic: true,
         };
       });
@@ -917,10 +1252,40 @@ export default function DynamicOKRDashboard() {
   const startRank  = rankWindowData && playerMetrics
     ? playerMetrics.ranking + rankWindowData.rankChange : null;
 
-  const handleSearch = v => {
-    setSearchTerm(v);
-    setFilteredPlayers(!v.trim() ? players
-      : players.filter(p => p.player_name.toLowerCase().includes(v.toLowerCase())));
+  const RANK_RANGES = { '1-50': [1,50], '51-100': [51,100], '101-200': [101,200], '201-500': [201,500] };
+
+  const countries = useMemo(() => {
+    const seen = new Set();
+    return players
+      .filter(p => p.country_code && !seen.has(p.country_code) && seen.add(p.country_code))
+      .map(p => p.country_code)
+      .sort();
+  }, [players]);
+
+  const filteredPlayers = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return players.filter(p => {
+      if (term && !p.player_name.toLowerCase().includes(term)) return false;
+      if (filterGender  && p.gender !== filterGender) return false;
+      if (filterRank)   { const [mn, mx] = RANK_RANGES[filterRank]; if (p.rank < mn || p.rank > mx) return false; }
+      if (filterCountry && p.country_code !== filterCountry) return false;
+      if (filterAge) {
+        const age = calcAge(p.dob);
+        if (filterAge === 'u21' && (!age || age >= 21)) return false;
+        if (filterAge === 'u25' && (!age || age >= 25)) return false;
+      }
+      if (filterStyle && p.handedness !== filterStyle) return false;
+      if (filterGrip  && p.grip       !== filterGrip)  return false;
+      return true;
+    });
+  }, [players, searchTerm, filterGender, filterRank, filterCountry, filterAge, filterStyle, filterGrip]);
+
+  const activePlayerObj = players.find(p => p.player_id === selectedPlayer);
+  const isIndian = activePlayerObj?.country_code === 'IND';
+  const clearFilters = () => {
+    setFilterGender(''); setFilterRank(''); setFilterCountry('');
+    setFilterAge(''); setFilterStyle(''); setFilterGrip('');
+    setSearchTerm('');
   };
 
   const WL_FILTERS = [
@@ -950,6 +1315,7 @@ export default function DynamicOKRDashboard() {
         @keyframes sl { from { opacity:0; transform:translateY(-3px); } to { opacity:1; transform:translateY(0); } }
       `}</style>
 
+      <AuthBar />
       <div className="okr min-h-screen bg-slate-50">
         <div className="max-w-3xl mx-auto px-4 py-6 space-y-4">
 
@@ -957,7 +1323,7 @@ export default function DynamicOKRDashboard() {
             <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">TOPS · Table Tennis</p>
             <div className="flex items-center gap-3">
               {selectedPlayer && playerMetrics && (
-                <DataSourceToggle value={dataSource} onChange={changeDataSource} />
+                <DataSourceToggle value={dataSource} onChange={changeDataSource} showDomestic={isIndian} />
               )}
               <a href="/h2h" className="text-xs font-medium text-blue-600 hover:text-blue-800 flex items-center gap-1">
                 Compare players <ArrowRight size={11} />
@@ -965,30 +1331,109 @@ export default function DynamicOKRDashboard() {
             </div>
           </div>
 
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <input type="text" placeholder="Search player…" value={searchTerm}
-                onChange={e => handleSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-100" />
+          {/* ── Player Search + Filters ── */}
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+            {/* Search bar */}
+            <div className="relative" ref={searchRef}>
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none z-10" />
+              <input
+                type="text"
+                placeholder="Search player by name…"
+                value={searchTerm}
+                onChange={e => { setSearchTerm(e.target.value); setSearchOpen(true); }}
+                onFocus={() => setSearchOpen(true)}
+                className="w-full pl-9 pr-4 py-3 text-sm focus:outline-none bg-transparent border-b border-slate-100"
+              />
+              {/* Autocomplete dropdown */}
+              {searchOpen && (
+                <div className="absolute left-0 right-0 top-full bg-white border border-slate-200 rounded-b-xl shadow-lg z-50 max-h-56 overflow-y-auto">
+                  {!searchTerm && <p className="px-4 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-50">Top ranked players</p>}
+                  {filteredPlayers.slice(0, 15).map(p => (
+                    <button key={p.player_id}
+                      onMouseDown={() => {
+                        setSelectedPlayer(p.player_id); setPlayerName(p.player_name);
+                        setSearchTerm(p.player_name); setSearchOpen(false);
+                        setActiveTab('rank'); setDataSource('wtt');
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 text-left">
+                      <span className="text-[10px] font-bold text-slate-400 w-8 shrink-0">#{p.rank}</span>
+                      <span className="text-sm text-slate-800 flex-1">{p.player_name}</span>
+                      <span className="text-[10px] text-slate-400">{p.country_code} · {p.gender_label}</span>
+                    </button>
+                  ))}
+                  {filteredPlayers.length === 0 && (
+                    <p className="px-4 py-3 text-sm text-slate-400">No players found</p>
+                  )}
+                  {filteredPlayers.length > 15 && (
+                    <p className="px-4 py-2 text-xs text-slate-400 border-t border-slate-100">{filteredPlayers.length - 15} more — refine filters</p>
+                  )}
+                </div>
+              )}
             </div>
-            <select value={selectedPlayer || ''}
-              onChange={e => {
-                const id = parseInt(e.target.value);
-                const p  = players.find(p => p.player_id === id);
-                setSelectedPlayer(id);
-                if (p) setPlayerName(p.player_name);
-                setActiveTab('rank');
-                setDataSource('wtt');
-              }}
-              className="flex-1 px-4 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-100">
-              <option value="">Select player…</option>
-              {filteredPlayers.map(p => (
-                <option key={p.player_id} value={p.player_id}>
-                  {p.player_name} ({p.gender_label}) — #{p.rank}
-                </option>
+
+            {/* Filter chips */}
+            <div className="px-3 py-2.5 flex gap-1.5 flex-wrap items-center border-b border-slate-100">
+              {/* Gender */}
+              {['M','W'].map(g => (
+                <button key={g} onClick={() => setFilterGender(filterGender === g ? '' : g)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-all ${filterGender === g ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+                  {g === 'M' ? 'Men' : 'Women'}
+                </button>
               ))}
-            </select>
+              <span className="w-px h-4 bg-slate-200 mx-0.5" />
+              {/* Rank range */}
+              {Object.keys(RANK_RANGES).map(r => (
+                <button key={r} onClick={() => setFilterRank(filterRank === r ? '' : r)}
+                  className={`text-xs px-2.5 py-1 rounded-full border transition-all ${filterRank === r ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+                  #{r}
+                </button>
+              ))}
+              <span className="w-px h-4 bg-slate-200 mx-0.5" />
+              {/* Country */}
+              <select value={filterCountry} onChange={e => setFilterCountry(e.target.value)}
+                className={`text-xs px-2 py-1 rounded-full border transition-all focus:outline-none ${filterCountry ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
+                <option value="">Country</option>
+                {countries.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {/* Age */}
+              <select value={filterAge} onChange={e => setFilterAge(e.target.value)}
+                className={`text-xs px-2 py-1 rounded-full border transition-all focus:outline-none ${filterAge ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
+                <option value="">Age</option>
+                <option value="u21">Under 21</option>
+                <option value="u25">Under 25</option>
+              </select>
+              {/* Style */}
+              <select value={filterStyle} onChange={e => setFilterStyle(e.target.value)}
+                className={`text-xs px-2 py-1 rounded-full border transition-all focus:outline-none ${filterStyle ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
+                <option value="">Style</option>
+                <option value="Right Hand">Right Hand</option>
+                <option value="Left Hand">Left Hand</option>
+              </select>
+              {/* Grip */}
+              <select value={filterGrip} onChange={e => setFilterGrip(e.target.value)}
+                className={`text-xs px-2 py-1 rounded-full border transition-all focus:outline-none ${filterGrip ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200'}`}>
+                <option value="">Grip</option>
+                <option value="Shakehand">Shakehand</option>
+                <option value="Penhold">Penhold</option>
+              </select>
+              {/* Clear */}
+              {(filterGender || filterRank || filterCountry || filterAge || filterStyle || filterGrip || searchTerm) && (
+                <button onClick={clearFilters} className="text-xs px-2.5 py-1 rounded-full border border-red-200 text-red-400 hover:bg-red-50 ml-auto">
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Result count + current selection */}
+            <div className="px-4 py-2 flex items-center justify-between">
+              <span className="text-xs text-slate-400">{filteredPlayers.length} player{filteredPlayers.length !== 1 ? 's' : ''}</span>
+              {selectedPlayer && activePlayerObj && (
+                <span className="text-xs text-slate-600 font-medium">
+                  Selected: <span className="text-slate-800">#{activePlayerObj.rank} {activePlayerObj.player_name}</span>
+                  <span className="text-slate-400"> · {activePlayerObj.country_code}</span>
+                </span>
+              )}
+            </div>
           </div>
 
           {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">{error}</div>}
@@ -1197,29 +1642,24 @@ export default function DynamicOKRDashboard() {
                               win.tierBuckets.length === 0
                                 ? <tr><td colSpan={3} style={{ padding: 16, fontSize: 13, color: '#94a3b8' }}>No tier data.</td></tr>
                                 : <>
-                                  <tr><td colSpan={3} style={{ padding: '6px 14px 4px' }}>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
-                                      {[
-                                        { g: 1, label: 'Olympics, Worlds, Grand Smash' },
-                                        { g: 2, label: 'Asian Games, WTT Champions, World Cup' },
-                                        { g: 3, label: 'WTT Star Contender, Commonwealth' },
-                                        { g: 4, label: 'WTT Contender, South Asian' },
-                                        { g: 5, label: 'WTT Feeder' },
-                                        { g: 6, label: 'TTFI Nationals, Ranking, Khelo India' },
-                                      ].map(({ g, label }) => (
-                                        <span key={g} style={{ fontSize: 10, color: '#94a3b8' }}>
-                                          <span style={{ fontWeight: 700, color: '#475569' }}>G{g}</span> {label}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </td></tr>
-                                  {win.tierBuckets.map(b => (
-                                    <WLBarRows key={b.tier} label={b.label} wins={b.wins} losses={b.losses} winPct={b.winPct}
-                                      isOpen={openTierBar === b.tier}
-                                      onToggle={() => setOpenTierBar(openTierBar === b.tier ? null : b.tier)}>
-                                      {b.matches.map((m, i) => <MatchRow key={i} match={m} />)}
-                                    </WLBarRows>
-                                  ))}
+                                  {win.tierBuckets.map(b => {
+                                    const TIER_DESC = {
+                                      '1': 'Olympics, Worlds, Grand Smash',
+                                      '2': 'Asian Games, WTT Champions, World Cup',
+                                      '3': 'WTT Star Contender, Commonwealth',
+                                      '4': 'WTT Contender, South Asian',
+                                      '5': 'WTT Feeder',
+                                      '6': 'TTFI Nationals, Ranking, Khelo India',
+                                    };
+                                    return (
+                                      <WLBarRows key={b.tier} label={b.label} sublabel={TIER_DESC[b.tier]}
+                                        wins={b.wins} losses={b.losses} winPct={b.winPct}
+                                        isOpen={openTierBar === b.tier}
+                                        onToggle={() => setOpenTierBar(openTierBar === b.tier ? null : b.tier)}>
+                                        {b.matches.map((m, i) => <MatchRow key={i} match={m} />)}
+                                      </WLBarRows>
+                                    );
+                                  })}
                                 </>
                             )}
                             {wlFilter === 'competitor' && (
@@ -1267,52 +1707,220 @@ export default function DynamicOKRDashboard() {
                   )}
 
                   {activeTab === 'performance' && dna && (
-                    <div className="p-5 space-y-4 slide">
-                      <div className="flex items-center justify-between">
-                        <p className="text-xs text-slate-500 font-medium">How do they perform under pressure?</p>
-                        <WindowToggle value={dnaWindow} onChange={v => { setDnaWindow(v); setOpenDna(null); }} />
+                    <div className="p-5 space-y-3 slide">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs text-slate-500 font-medium uppercase tracking-widest">Performance Insights</p>
+                        <WindowToggle value={dnaWindow} onChange={v => { setDnaWindow(v); setOpenDna(null); setOpenRankCtx(null); setOpenPerfSections(new Set()); }} />
                       </div>
-                      <div className="flex items-center gap-2 pb-4 border-b border-slate-100">
-                        <span className="text-sm text-slate-600">Avg point diff per game</span>
-                        <span className={`text-sm font-bold ${dna.avgPtDiff > 0 ? 'text-emerald-600' : dna.avgPtDiff < 0 ? 'text-red-400' : 'text-slate-400'}`}>
-                          {dna.avgPtDiff >= 0 ? '+' : ''}{dna.avgPtDiff.toFixed(2)}
-                        </span>
-                        <span className="text-xs text-slate-400">across {dna.matchCount} matches</span>
-                      </div>
-                      <div className="border border-slate-200 rounded-xl overflow-hidden">
-                        {[
-                          { key: 'clutch',         label: 'Clutch index',         desc: 'Won on the deciding set',           value: `${dna.clutchIndex.toFixed(1)}%`,  pctBase: null,       pctVal: null,                   pctLabel: null,        color: 'text-amber-600',   matches: dna.dnaGroups.clutch },
-                          { key: 'straightWins',   label: 'Straight sets wins',   desc: 'Dominated without dropping a game', value: `${dna.straightSetsWins}`,         pctBase: dna.wins,   pctVal: dna.straightSetsWins,   pctLabel: 'of wins',   color: 'text-emerald-600', matches: dna.dnaGroups.straightWins },
-                          { key: 'straightLosses', label: 'Straight sets losses', desc: 'Lost without winning a game',       value: `${dna.straightSetsLosses}`,       pctBase: dna.losses, pctVal: dna.straightSetsLosses, pctLabel: 'of losses', color: 'text-red-400',     matches: dna.dnaGroups.straightLosses },
-                          { key: 'comebacks',      label: 'Comeback wins',        desc: 'Won after losing game 1',           value: `${dna.comebackWins}`,             pctBase: dna.wins,   pctVal: dna.comebackWins,       pctLabel: 'of wins',   color: 'text-sky-600',     matches: dna.dnaGroups.comebacks },
-                        ].map((item, idx, arr) => (
-                          <div key={item.key} className={idx < arr.length - 1 ? 'border-b border-slate-100' : ''}>
-                            <button onClick={() => setOpenDna(openDna === item.key ? null : item.key)}
-                              className={`w-full flex items-center px-4 py-3.5 text-left transition-colors ${openDna === item.key ? 'bg-blue-50/40' : 'hover:bg-slate-50'}`}>
-                              <div className="flex-1 min-w-0">
-                                <span className="text-sm text-slate-800">{item.label}</span>
-                                <span className="text-xs text-slate-400 ml-2">{item.desc}</span>
-                              </div>
-                              <div className="flex items-center gap-2.5 shrink-0">
-                                <span className={`text-base font-bold ${item.color}`}>{item.value}</span>
-                                {item.pctBase > 0 && (
-                                  <span className="text-xs text-slate-400">
-                                    {((item.pctVal / item.pctBase) * 100).toFixed(0)}% {item.pctLabel}
-                                  </span>
-                                )}
-                                {item.matches.length > 0
-                                  ? openDna === item.key ? <ChevronUp size={13} className="text-slate-400" /> : <ChevronDown size={13} className="text-slate-400" />
-                                  : <span className="w-[13px]" />}
-                              </div>
-                            </button>
-                            {openDna === item.key && item.matches.length > 0 && (
-                              <div className="slide border-t border-slate-100 bg-slate-50/30">
-                                <MatchList matches={item.matches} />
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
+
+                      {(() => {
+                        const rc = dna.rankContext;
+                        const DNA_KEYS = new Set(['clutch','straightWins','straightLosses','comebacks','winrate','avgptdiff','ppg','form']);
+
+                        const allSections = [
+                          {
+                            key: 'outcomes',
+                            heading: 'Outcomes',
+                            summary: `${dna.winRate.toFixed(1)}% win rate · ${dna.wins}W ${dna.losses}L · form: ${(dna.currentForm||[]).slice(0,5).join(' ')}`,
+                            items: [
+                              { key: 'winrate',        label: 'Win Rate',            northStar: true, narrative: nsNarrative('winrate', dna.winRate), desc: `${dna.wins}W · ${dna.losses}L · ${dna.matchCount} matches`,        value: `${dna.winRate.toFixed(1)}%`,                                    accent: dna.winRate >= 50 ? '#10b981' : '#f87171', matches: [] },
+                              { key: 'avgptdiff',      label: 'Avg Point Diff',      desc: 'Average point margin per game',                                     value: `${dna.avgPtDiff >= 0 ? '+' : ''}${dna.avgPtDiff.toFixed(2)}`,  accent: dna.avgPtDiff >= 0 ? '#10b981' : '#f87171', matches: [] },
+                              { key: 'ppg',            label: 'Points Per Game',     desc: 'Avg points scored per game (attack volume)',                         value: dna.pointsPerGame !== null ? dna.pointsPerGame.toFixed(1) : '—', accent: '#6366f1', matches: [] },
+                              { key: 'avgopp',         label: 'Avg Opp Rank Beaten', desc: 'Average world rank of all opponents defeated — quality of wins',    value: dna.avgOppRankBeaten ? `#${dna.avgOppRankBeaten}` : '—',        accent: '#6366f1', matches: [] },
+                              { key: 'straightWins',   label: 'Straight-Set Wins',   desc: 'Won without dropping a game — dominant victories',                  value: `${dna.straightSetsWins}`,   sub: dna.wins > 0 ? `${((dna.straightSetsWins/dna.wins)*100).toFixed(0)}% of wins` : null,     accent: '#10b981', matches: dna.dnaGroups.straightWins },
+                              { key: 'straightLosses', label: 'Straight-Set Losses', desc: 'Lost without winning a game — complete capitulations',              value: `${dna.straightSetsLosses}`, sub: dna.losses > 0 ? `${((dna.straightSetsLosses/dna.losses)*100).toFixed(0)}% of losses` : null, accent: '#f87171', matches: dna.dnaGroups.straightLosses },
+                              { key: 'form',           label: 'Current Form',        desc: `Last ${(dna.currentForm||[]).length} matches`,                      value: (() => { const f = dna.currentForm||[]; const w = f.filter(r=>r==='W').length; return `${w}W ${f.length-w}L`; })(), sub: (dna.currentForm||[]).join(' '), accent: (() => { const f = dna.currentForm||[]; const w = f.filter(r=>r==='W').length; return w/Math.max(f.length,1) >= 0.5 ? '#10b981' : '#f87171'; })(), matches: [] },
+                            ],
+                          },
+                          ...(rc ? [{
+                            key: 'ambition',
+                            heading: 'Ambition — Playing Up',
+                            summary: `Upset Rate ${rc.upsetRate !== null ? rc.upsetRate.toFixed(0)+'%' : '—'} · Upset Yield ${dna.upsetYield.toFixed(0)}% · Best scalp ${rc.biggestScalpRank ? '#'+rc.biggestScalpRank : '—'}`,
+                            items: [
+                              { key: 'ambitionzone',  label: 'Ambition Zone Win Rate', desc: `Win % vs opponents ranked 20+ above at match time · ${rc.ambitionMatches.length} matches — true underdog battles`, value: rc.ambitionWinRate !== null ? `${rc.ambitionWinRate.toFixed(1)}%` : '—', accent: rc.ambitionWinRate !== null && rc.ambitionWinRate >= 25 ? '#10b981' : '#94a3b8', matches: rc.ambitionMatches },
+                              { key: 'upsetrate',    label: 'Upset Rate',        northStar: true, narrative: nsNarrative('upsetrate', rc.upsetRate), desc: `Win % vs higher-ranked opponents · ${rc.vsHigherCount} matches`,  value: rc.upsetRate !== null ? `${rc.upsetRate.toFixed(1)}%` : '—',   accent: rc.upsetRate !== null && rc.upsetRate >= 30 ? '#10b981' : '#94a3b8', matches: rc.vsHigherMatches },
+                              { key: 'upsetyield',   label: 'Upset Yield',       desc: '% of total wins that came against higher-ranked opponents',        value: `${dna.upsetYield.toFixed(1)}%`,                               accent: dna.upsetYield >= 25 ? '#10b981' : '#94a3b8',                      matches: dna.allMatches.filter(m => m.isUpset) },
+                              { key: 'biggestscalp', label: 'Biggest Rank Scalp',desc: 'Best single upset win — highest-ranked opponent beaten',           value: rc.biggestScalpRank ? `#${rc.biggestScalpRank}` : '—',         accent: '#8b5cf6',                                                          matches: rc.biggestScalpMatch },
+                            ],
+                          }] : []),
+                          ...(rc ? [{
+                            key: 'consistency',
+                            heading: 'Consistency — Holding Ground',
+                            summary: `Dominance ${rc.dominanceRate !== null ? rc.dominanceRate.toFixed(0)+'%' : '—'} · Lead Protection ${rc.leadProtectionRate !== null ? rc.leadProtectionRate.toFixed(0)+'%' : '—'} · Banana Skin ${rc.bananaSkinRate.toFixed(0)}%`,
+                            items: [
+                              { key: 'dominance',   label: 'Dominance Rate',       northStar: true, narrative: nsNarrative('dominance', rc.dominanceRate), desc: `Win % as favourite vs lower-ranked · ${rc.vsLowerCount} matches`,                              value: rc.dominanceRate !== null ? `${rc.dominanceRate.toFixed(1)}%` : '—',         accent: rc.dominanceRate !== null && rc.dominanceRate >= 70 ? '#10b981' : '#f59e0b',          matches: rc.vsLowerMatches },
+                              { key: 'hold',        label: 'Hold Rate',            desc: 'Win % vs players ranked 20+ below — must-win territory',                                       value: rc.holdRate !== null ? `${rc.holdRate.toFixed(1)}%` : '—',                   accent: rc.holdRate !== null && rc.holdRate >= 80 ? '#10b981' : '#f59e0b',                    matches: rc.holdMatches },
+                              { key: 'bananaskin',  label: 'Banana Skin Rate',     desc: `Shock losses to lower-ranked · ${rc.bananaSkinMatches.length} of ${dna.losses} losses`,      value: `${rc.bananaSkinRate.toFixed(1)}%`,                                           accent: rc.bananaSkinRate > 30 ? '#f87171' : '#94a3b8',                                      matches: rc.bananaSkinMatches },
+                              { key: 'peerzone',    label: 'Peer Zone Win Rate',   desc: `Win % vs opponents within ±20 ranks at match time · ${rc.peerMatches.length} matches — rank-adjusted close battles`, value: rc.peerWinRate !== null ? `${rc.peerWinRate.toFixed(1)}%` : '—', accent: rc.peerWinRate !== null && rc.peerWinRate >= 50 ? '#10b981' : '#f87171', matches: rc.peerMatches },
+                              { key: 'proximity',   label: 'Proximity Win Rate',   desc: `Win % vs opponents within ±10 ranks · ${rc.vsProximityMatches.length} matches`,              value: rc.proximityWinRate !== null ? `${rc.proximityWinRate.toFixed(1)}%` : '—',     accent: rc.proximityWinRate !== null && rc.proximityWinRate >= 50 ? '#10b981' : '#f87171',    matches: rc.vsProximityMatches },
+                              { key: 'leadprotect', label: 'Lead Protection Rate', desc: `Win % in matches where game 1 was won · ${rc.wonGame1Matches.length} such matches`,          value: rc.leadProtectionRate !== null ? `${rc.leadProtectionRate.toFixed(1)}%` : '—', accent: rc.leadProtectionRate !== null && rc.leadProtectionRate >= 75 ? '#10b981' : '#f59e0b', matches: rc.wonGame1Matches.filter(m => m.result === 'W') },
+                              { key: 'comfort',     label: 'Comfort Zone Index',   desc: rc.comfortZoneIndex !== null ? (rc.comfortZoneIndex > 1.5 ? 'Over-reliant on weaker opponents — win rate vs lower-ranked far exceeds vs higher' : rc.comfortZoneIndex < 1.1 ? 'Balanced across all ranks — performs equally vs all levels' : 'Moderate rank dependency') : 'Insufficient data', value: rc.comfortZoneIndex !== null ? `${rc.comfortZoneIndex.toFixed(2)}×` : '—', accent: rc.comfortZoneIndex !== null && rc.comfortZoneIndex <= 1.3 ? '#10b981' : '#f59e0b', matches: rc.vsRankedMatches || [] },
+                            ],
+                          }] : []),
+                          {
+                            key: 'mental',
+                            heading: 'Mental Game — Under Pressure',
+                            summary: `Clutch ${dna.clutchIndex != null ? dna.clutchIndex.toFixed(0)+'%' : '—'} · Deciding game ${rc?.decidingWinRate != null ? rc.decidingWinRate.toFixed(0)+'%' : '—'} · ${dna.comebackWins} comebacks`,
+                            items: [
+                              { key: 'clutch',        label: 'Clutch Index',           northStar: true, narrative: nsNarrative('clutch', dna.clutchIndex), desc: 'Win rate in deciding-game matches (3-2 or 4-3)',                                                                                                                               value: dna.clutchIndex != null ? `${dna.clutchIndex.toFixed(1)}%` : '—', sub: `${dna.dnaGroups.clutch.length} deciding matches`,                                                       accent: '#f59e0b', matches: dna.dnaGroups.clutch },
+                              { key: 'comebacks',     label: 'Comeback Wins',          desc: 'Won after losing game 1 — mental resilience',                                                                                                                                          value: `${dna.comebackWins}`,            sub: dna.wins > 0 ? `${((dna.comebackWins/dna.wins)*100).toFixed(0)}% of wins` : null,               accent: '#38bdf8', matches: dna.dnaGroups.comebacks },
+                              ...(rc ? [
+                                { key: 'deciding',      label: 'Deciding Game Win Rate',desc: `Win % in matches going to game 5 or 7 · ${rc.decidingMatches.length} matches`,                                                                                                       value: rc.decidingWinRate !== null ? `${rc.decidingWinRate.toFixed(1)}%` : '—',  accent: rc.decidingWinRate !== null && rc.decidingWinRate >= 50 ? '#10b981' : '#f87171', matches: rc.decidingMatches },
+                                { key: 'deuce',         label: 'Deuce Win Rate',        desc: `Win % in games reaching 10–10 · ${rc.deuceTotal} deuce games across ${rc.deuceMatches?.length ?? 0} matches`,                                                                                                                       value: rc.deuceWinRate !== null ? `${rc.deuceWinRate.toFixed(1)}%` : '—',        accent: rc.deuceWinRate !== null && rc.deuceWinRate >= 50 ? '#10b981' : '#f87171',     matches: rc.deuceMatches || [] },
+                                { key: 'momentum-hot',  label: 'Momentum — Hot Streak', desc: `Win % entering match on a 3-win streak · ${rc.hotTotal >= 3 ? rc.hotTotal+' situations' : 'insufficient data'}`,                                                                    value: rc.momentumHotRate !== null ? `${rc.momentumHotRate.toFixed(1)}%` : '—',  accent: rc.momentumHotRate !== null && rc.momentumHotRate >= 60 ? '#10b981' : '#94a3b8', matches: rc.hotMatches },
+                                { key: 'momentum-cold', label: 'Momentum — Cold Streak',desc: `Win % entering match on a 3-loss streak · ${rc.coldTotal >= 3 ? rc.coldTotal+' situations' : 'insufficient data'}`,                                                                 value: rc.momentumColdRate !== null ? `${rc.momentumColdRate.toFixed(1)}%` : '—', accent: rc.momentumColdRate !== null && rc.momentumColdRate >= 40 ? '#38bdf8' : '#f87171', matches: rc.coldMatches },
+                              ] : []),
+                            ],
+                          },
+                          ...(rc ? [{
+                            key: 'tournament',
+                            heading: 'Tournament Depth',
+                            summary: `Early rounds ${rc.groupWinRate !== null ? rc.groupWinRate.toFixed(0)+'%' : '—'} · QF/SF ${rc.knockoutWinRate !== null ? rc.knockoutWinRate.toFixed(0)+'%' : '—'} · Finals ${rc.finalsWinRate !== null ? rc.finalsWinRate.toFixed(0)+'%' : '—'}`,
+                            items: [
+                              { key: 'groupstage', label: 'Early Rounds Win Rate', desc: `Win % in group stage & rounds before QF · ${rc.groupMatches.length} matches`,    value: rc.groupWinRate !== null ? `${rc.groupWinRate.toFixed(1)}%` : '—',    accent: rc.groupWinRate !== null && rc.groupWinRate >= 60 ? '#10b981' : '#f59e0b',    matches: rc.groupMatches },
+                              { key: 'knockout',   label: 'QF / SF Win Rate',      northStar: true, narrative: nsNarrative('knockout', rc.knockoutWinRate), desc: `Win % in quarter-finals and semi-finals · ${rc.knockoutMatches.length} matches`,  value: rc.knockoutWinRate !== null ? `${rc.knockoutWinRate.toFixed(1)}%` : '—', accent: rc.knockoutWinRate !== null && rc.knockoutWinRate >= 50 ? '#10b981' : '#f59e0b', matches: rc.knockoutMatches },
+                              { key: 'finals',     label: 'Finals Win Rate',       desc: `Win % when reaching a final · ${rc.finalsMatches.length} finals`,                value: rc.finalsWinRate !== null ? `${rc.finalsWinRate.toFixed(1)}%` : '—',   accent: rc.finalsWinRate !== null && rc.finalsWinRate >= 50 ? '#10b981' : '#f87171',  matches: rc.finalsMatches },
+                              { key: 'avground',   label: 'Avg Round Reached',     desc: `Average deepest stage reached per tournament · ${rc.depthValues.length} tournaments`, value: rc.avgRoundLabel || '—', accent: '#6366f1', matches: [], customContent: rc.avgRoundByGrade?.length > 0 ? rc.avgRoundByGrade : null },
+                            ],
+                          }] : []),
+                        ];
+
+                        const toggleSection = (key) => {
+                          setOpenPerfSections(prev => {
+                            const next = new Set(prev);
+                            next.has(key) ? next.delete(key) : next.add(key);
+                            return next;
+                          });
+                          setOpenDna(null);
+                          setOpenRankCtx(null);
+                        };
+
+                        const toggleItem = (key) => {
+                          if (DNA_KEYS.has(key)) {
+                            setOpenDna(prev => prev === key ? null : key);
+                          } else {
+                            setOpenRankCtx(prev => prev === key ? null : key);
+                          }
+                        };
+
+                        const isItemOpen = (key) => openDna === key || openRankCtx === key;
+
+                        return allSections.map(section => {
+                          const isOpen = openPerfSections.has(section.key);
+                          return (
+                            <div key={section.key} className="border border-slate-200 rounded-xl overflow-hidden">
+                              {/* Section header — always visible */}
+                              <button
+                                onClick={() => toggleSection(section.key)}
+                                className={`w-full flex items-center justify-between px-4 py-3.5 text-left transition-colors ${isOpen ? 'bg-slate-50 border-b border-slate-100' : 'hover:bg-slate-50/60'}`}>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-slate-800">{section.heading}</p>
+                                  {!isOpen && <p className="text-xs text-slate-400 mt-0.5">{section.summary}</p>}
+                                </div>
+                                {!isOpen && (() => {
+                                  const ns = section.items.find(it => it.northStar);
+                                  if (!ns || ns.value === '—') return null;
+                                  return (
+                                    <span style={{ fontSize: 22, fontWeight: 800, color: ns.accent, marginRight: 10, lineHeight: 1 }}>
+                                      {ns.value}
+                                    </span>
+                                  );
+                                })()}
+                                {isOpen ? <ChevronUp size={15} className="text-slate-400 shrink-0" /> : <ChevronDown size={15} className="text-slate-400 shrink-0" />}
+                              </button>
+
+                              {/* Metric rows — visible when section is open */}
+                              {isOpen && (
+                                <div className="divide-y divide-slate-100">
+                                  {section.items.map(item => {
+                                    const hasContent = item.matches.length > 0 || !!item.customContent;
+                                    const GRADE_DESC = { '1':'Olympics, Worlds, Grand Smash', '2':'Asian Games, WTT Champions, World Cup', '3':'WTT Star Contender, Commonwealth', '4':'WTT Contender, South Asian', '5':'WTT Feeder', '6':'TTFI Nationals, Ranking, Khelo India' };
+
+                                    if (item.northStar) {
+                                      return (
+                                        <div key={item.key} style={{ borderBottom: '1px solid #e8edf4' }}>
+                                          <button
+                                            onClick={() => hasContent && toggleItem(item.key)}
+                                            style={{ width: '100%', textAlign: 'left', border: 'none', cursor: hasContent ? 'pointer' : 'default', background: `${item.accent}09`, display: 'block', padding: '16px 16px 14px' }}>
+                                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                                              <div style={{ flex: 1, minWidth: 0 }}>
+                                                <span style={{ display: 'inline-block', fontSize: 9, fontWeight: 800, color: item.accent, textTransform: 'uppercase', letterSpacing: '0.1em', background: `${item.accent}1a`, padding: '2px 7px', borderRadius: 4, marginBottom: 6 }}>North Star</span>
+                                                <p style={{ fontSize: 14, fontWeight: 700, color: '#1e293b', marginBottom: 3 }}>{item.label}</p>
+                                                {item.narrative && <p style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic', marginBottom: 3 }}>{item.narrative}</p>}
+                                                <p style={{ fontSize: 11, color: '#94a3b8' }}>{item.desc}</p>
+                                              </div>
+                                              <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                                <div>
+                                                  <p style={{ fontSize: 32, fontWeight: 800, lineHeight: 1, color: item.accent }}>{item.value}</p>
+                                                  {item.sub && <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{item.sub}</p>}
+                                                </div>
+                                                {hasContent && (isItemOpen(item.key) ? <ChevronUp size={13} style={{ color: '#94a3b8', flexShrink: 0 }} /> : <ChevronDown size={13} style={{ color: '#94a3b8', flexShrink: 0 }} />)}
+                                              </div>
+                                            </div>
+                                          </button>
+                                          {isItemOpen(item.key) && item.matches.length > 0 && (
+                                            <div className="slide border-t border-slate-100 bg-slate-50/40">
+                                              <MatchList matches={item.matches} />
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    }
+
+                                    return (
+                                      <div key={item.key}>
+                                        <button
+                                          onClick={() => hasContent && toggleItem(item.key)}
+                                          className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${isItemOpen(item.key) ? 'bg-blue-50/30' : hasContent ? 'hover:bg-slate-50/70' : ''}`}>
+                                          <span style={{ width: 3, alignSelf: 'stretch', borderRadius: 99, background: item.accent, flexShrink: 0 }} />
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-slate-800">{item.label}</p>
+                                            <p className="text-xs text-slate-400 mt-0.5">{item.desc}</p>
+                                          </div>
+                                          <div className="text-right shrink-0">
+                                            <p className="text-base font-bold" style={{ color: item.accent }}>{item.value}</p>
+                                            {item.sub && <p className="text-[11px] text-slate-400 mt-0.5">{item.sub}</p>}
+                                          </div>
+                                          {hasContent
+                                            ? isItemOpen(item.key) ? <ChevronUp size={13} className="text-slate-400 shrink-0" /> : <ChevronDown size={13} className="text-slate-400 shrink-0" />
+                                            : <span className="w-[13px] shrink-0" />}
+                                        </button>
+                                        {isItemOpen(item.key) && item.customContent && (
+                                          <div className="slide border-t border-slate-100 bg-slate-50/40 px-4 py-2">
+                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                              <thead>
+                                                <tr>
+                                                  <td style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 6, paddingRight: 12 }}>Grade</td>
+                                                  <td style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 6 }}>Events</td>
+                                                  <td style={{ fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', paddingBottom: 6, textAlign: 'right' }}>Avg Round</td>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {item.customContent.map(g => (
+                                                  <tr key={g.grade} style={{ borderTop: '0.5px solid #f1f5f9' }}>
+                                                    <td style={{ padding: '6px 12px 6px 0', fontSize: 12, fontWeight: 600, color: '#6366f1', whiteSpace: 'nowrap' }}>G{g.grade}</td>
+                                                    <td style={{ padding: '6px 12px 6px 0', fontSize: 11, color: '#64748b' }}>{GRADE_DESC[g.grade] || ''} <span style={{ color: '#94a3b8' }}>· {g.count} {g.count === 1 ? 'tourn' : 'tourneys'}</span></td>
+                                                    <td style={{ padding: '6px 0', fontSize: 12, fontWeight: 600, color: '#334155', textAlign: 'right' }}>{g.label}</td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
+                                          </div>
+                                        )}
+                                        {isItemOpen(item.key) && item.matches.length > 0 && (
+                                          <div className="slide border-t border-slate-100 bg-slate-50/40">
+                                            <MatchList matches={item.matches} />
+                                          </div>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   )}
 

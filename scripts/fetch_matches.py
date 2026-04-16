@@ -172,7 +172,7 @@ COMMON_HEADERS = {
     "Referer":    "https://worldtabletennis.com/",
 }
 
-LOOKBACK_DAYS = 14     # fetch events that ended in the last N days
+LOOKBACK_DAYS = 21     # fetch events that ended in the last N days
 SLEEP_EVENT   = 2.0    # seconds between event fetches
 
 # ─── Event Discovery ──────────────────────────────────────────────────────────
@@ -205,8 +205,16 @@ def get_recent_event_ids(lookback_days: int = LOOKBACK_DAYS) -> list[dict]:
 def events_needing_fetch(supabase: Client,
                           recent: list[dict]) -> list[dict]:
     """
-    Filter to events that have no matches in wtt_matches_singles yet.
-    Also ensures event exists in wtt_events table.
+    Return all recent events for re-fetch.
+
+    We always re-fetch every event within the lookback window rather than
+    skipping events that already have some matches.  This prevents partial
+    scrapes from getting permanently locked in: the WTT API sometimes
+    returns only a subset of draws on the first run (e.g. Men's only),
+    and a count > 0 check would skip the event on every subsequent run.
+
+    Upsert with on_conflict="match_id" makes re-fetching fully idempotent —
+    existing rows are updated in place and new rows are inserted cleanly.
     """
     needs_fetch = []
     for ev in recent:
@@ -214,19 +222,18 @@ def events_needing_fetch(supabase: Client,
         if not eid:
             continue
 
-        # Check match count
         result = (
             supabase.table("wtt_matches_singles")
             .select("match_id", count="exact")
             .eq("event_id", eid)
-            .limit(1)
             .execute()
         )
-        if (result.count or 0) == 0:
-            needs_fetch.append(ev)
-            print(f"  [New] {ev['event_name']} (id:{eid}) — no matches yet")
-        else:
-            print(f"  [OK]  {ev['event_name']} (id:{eid}) — {result.count} matches exist")
+        count = result.count or 0
+        status = f"{count} matches in DB — re-fetching to catch any new results"
+        if count == 0:
+            status = "no matches yet"
+        print(f"  [Fetch] {ev['event_name']} (id:{eid}) — {status}")
+        needs_fetch.append(ev)
 
     return needs_fetch
 
@@ -436,7 +443,7 @@ def ensure_players_in_db(supabase: Client, matches: list[dict]) -> None:
                         "player_name":  p.get("PlayerName"),
                         "country_code": p.get("CountryCode"),
                         "country_name": p.get("CountryName"),
-                        "gender":       p.get("Gender"),
+                        "gender":       {"Men":"M","M":"M","Male":"M","Women":"W","Woman":"W","W":"W","F":"W","Female":"W"}.get(p.get("Gender") or "", None),
                         "dob":          dob,
                         "handedness":   p.get("Handedness"),
                         "grip":         p.get("Grip"),
