@@ -245,31 +245,40 @@ def fetch_event_matches(event_id: int) -> list[dict]:
     Fetch and parse all match results for one event.
     Returns list of match dicts ready for Supabase upsert.
     """
-    params = {
-        "EventId":           event_id,
-        "include_match_card": "true",
-        "take":               1000,
-    }
-    resp = requests.get(RESULTS_URL, params=params,
-                        headers=COMMON_HEADERS, timeout=25)
+    try:
+        resp = requests.get(
+            RESULTS_URL,
+            params={"eventId": event_id, "q": 1},
+            headers=COMMON_HEADERS,
+            timeout=25,
+        )
+    except Exception as e:
+        print(f"  [!] Request error for event {event_id}: {e}")
+        return []
+
     if resp.status_code != 200:
         print(f"  [!] HTTP {resp.status_code} for event {event_id}")
         return []
 
-    data    = resp.json()
-    matches = data.get("Data", data) if isinstance(data, dict) else data
-    if not matches:
+    try:
+        data = resp.json()
+    except Exception as e:
+        print(f"  [!] JSON parse error for event {event_id}: {e}")
+        return []
+
+    cards = data.get("Result") or data.get("result") or (data if isinstance(data, list) else [])
+    if not cards:
+        print(f"  [!] No Result key in API response for event {event_id}. Keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
         return []
 
     records = []
-    for team_tie in matches:
-        if not isinstance(team_tie, dict):
+    for root_card in cards:
+        if not isinstance(root_card, dict):
             continue
-        root_card = team_tie.get("match_card") or {}
 
         # Handle team events (nested individual matches)
-        team_parent       = root_card.get("teamParentData") or {}
-        extended          = team_parent.get("extended_info") or {}
+        team_parent        = root_card.get("teamParentData") or {}
+        extended           = team_parent.get("extended_info") or {}
         individual_matches = extended.get("matches") or []
 
         to_process = [
@@ -488,15 +497,24 @@ def main():
             continue
 
         # Upsert in batches of 500
+        upserted = 0
         for i in range(0, len(matches), 500):
             chunk = [m for m in matches[i:i+500] if m]
-            if chunk:
-                supabase.table("wtt_matches_singles").upsert(
+            if not chunk:
+                continue
+            try:
+                result = supabase.table("wtt_matches_singles").upsert(
                     chunk, on_conflict="match_id"
                 ).execute()
+                if hasattr(result, "data") and result.data is not None:
+                    upserted += len(result.data)
+                else:
+                    upserted += len(chunk)
+            except Exception as e:
+                print(f"  [!] Upsert error (batch {i//500 + 1}): {e}")
 
-        total_upserted += len(matches)
-        print(f"  Upserted {len(matches)} matches for {name}.")
+        total_upserted += upserted
+        print(f"  Upserted {upserted}/{len(matches)} matches for {name}.")
 
         # Auto-insert any new players not yet in wtt_players
         ensure_players_in_db(supabase, matches)
