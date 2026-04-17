@@ -33,14 +33,23 @@ GENDER_MAP = {"Men":"M","M":"M","Male":"M","Women":"W","Woman":"W","W":"W","F":"
 
 def get_missing_ids(supabase: Client) -> list[int]:
     """Return all player IDs in matches but not in wtt_players, valid range only."""
-    # Fetch all player IDs in matches
-    result = supabase.rpc("get_missing_player_ids", {}).execute()
-    # Fallback: manual query via two selects
-    matches = supabase.table("wtt_matches_singles").select("comp1_id,comp2_id").execute()
+    # Paginate through all matches to collect comp IDs
     all_ids = set()
-    for row in (matches.data or []):
-        if row.get("comp1_id"): all_ids.add(row["comp1_id"])
-        if row.get("comp2_id"): all_ids.add(row["comp2_id"])
+    page_size = 1000
+    offset = 0
+    while True:
+        rows = supabase.table("wtt_matches_singles") \
+            .select("comp1_id,comp2_id") \
+            .range(offset, offset + page_size - 1) \
+            .execute()
+        if not rows.data:
+            break
+        for row in rows.data:
+            if row.get("comp1_id"): all_ids.add(row["comp1_id"])
+            if row.get("comp2_id"): all_ids.add(row["comp2_id"])
+        if len(rows.data) < page_size:
+            break
+        offset += page_size
 
     # Filter to valid ITTF ID range
     all_ids = {i for i in all_ids if 1 <= i < 1_000_000}
@@ -54,7 +63,7 @@ def get_missing_ids(supabase: Client) -> list[int]:
         existing.update(r["ittf_id"] for r in (res.data or []))
 
     missing = sorted(all_ids - existing)
-    print(f"[Backfill] {len(missing)} player IDs missing from wtt_players")
+    print(f"[Backfill] {len(all_ids)} unique IDs in matches → {len(missing)} missing from wtt_players")
     return missing
 
 
