@@ -285,7 +285,10 @@ def fetch_event_matches(event_id: int) -> list[dict]:
         mc = first.get("match_card")
         has_mc = mc is not None
         has_comp = "competitiors" in first
+        mc_keys = list(mc.keys())[:6] if isinstance(mc, dict) else None
+        mc_doccode = mc.get("documentCode") if isinstance(mc, dict) else None
         print(f"  [DEBUG] first card keys: {list(first.keys())[:6]} | match_card: {has_mc} | competitiors: {has_comp}")
+        print(f"  [DEBUG] match_card keys: {mc_keys} | match_card.documentCode: {mc_doccode!r}")
 
     records = []
     for team_tie in cards:
@@ -524,25 +527,32 @@ def main():
             time.sleep(SLEEP_EVENT)
             continue
 
-        # Upsert in batches of 500
-        upserted = 0
-        for i in range(0, len(matches), 500):
-            chunk = [m for m in matches[i:i+500] if m]
-            if not chunk:
-                continue
+        # Log sample match_ids to detect duplicates / null IDs
+        null_ids = [m for m in matches if not m.get("match_id")]
+        if null_ids:
+            print(f"  [!] {len(null_ids)} records have null match_id — will be skipped by DB")
+        sample_ids = [m.get("match_id") for m in matches[:5]]
+        print(f"  [DEBUG] sample match_ids: {sample_ids}")
+        unique_ids = len({m.get("match_id") for m in matches if m.get("match_id")})
+        print(f"  [DEBUG] unique non-null match_ids: {unique_ids}/{len(matches)}")
+
+        # Upsert in batches of 500 (skip null match_id records)
+        to_upsert = [m for m in matches if m.get("match_id")]
+        for i in range(0, len(to_upsert), 500):
+            chunk = to_upsert[i:i+500]
             try:
-                result = supabase.table("wtt_matches_singles").upsert(
+                supabase.table("wtt_matches_singles").upsert(
                     chunk, on_conflict="match_id"
                 ).execute()
-                if hasattr(result, "data") and result.data is not None:
-                    upserted += len(result.data)
-                else:
-                    upserted += len(chunk)
             except Exception as e:
                 print(f"  [!] Upsert error (batch {i//500 + 1}): {e}")
 
-        total_upserted += upserted
-        print(f"  Upserted {upserted}/{len(matches)} matches for {name}.")
+        # Verify actual DB count
+        db_count = supabase.table("wtt_matches_singles") \
+            .select("match_id", count="exact").eq("event_id", eid).execute()
+        actual = db_count.count or 0
+        total_upserted += actual
+        print(f"  DB now has {actual} matches for {name} (parsed {len(matches)}, sent {len(to_upsert)}).")
 
         # Auto-insert any new players not yet in wtt_players
         ensure_players_in_db(supabase, matches)
