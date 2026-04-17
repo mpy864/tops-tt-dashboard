@@ -248,7 +248,7 @@ def fetch_event_matches(event_id: int) -> list[dict]:
     try:
         resp = requests.get(
             RESULTS_URL,
-            params={"eventId": event_id, "q": 1},
+            params={"EventId": event_id, "include_match_card": "true", "take": 1000},
             headers=COMMON_HEADERS,
             timeout=25,
         )
@@ -266,33 +266,32 @@ def fetch_event_matches(event_id: int) -> list[dict]:
         print(f"  [!] JSON parse error for event {event_id}: {e}")
         return []
 
+    # API returns either a direct list or {"Data": [...]}
     if isinstance(data, list):
         cards = data
+    elif isinstance(data, dict):
+        cards = data.get("Data") or data.get("Result") or data.get("result") or []
     else:
-        cards = data.get("Result") or data.get("result") or []
+        cards = []
+
+    print(f"  [DEBUG] API returned {type(data).__name__} with {len(cards)} cards")
     if not cards:
-        print(f"  [!] Empty response for event {event_id}. Type: {type(data)}, Keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
+        print(f"  [!] Empty response for event {event_id}")
         return []
 
-    # Diagnostic: print structure of first item to understand API response shape
-    if cards and isinstance(cards[0], dict):
+    # Log structure of first card to track API changes
+    if isinstance(cards[0], dict):
         first = cards[0]
-        print(f"  [DEBUG] {len(cards)} cards. First item top-level keys: {list(first.keys())}")
         mc = first.get("match_card")
-        if mc and isinstance(mc, dict):
-            print(f"  [DEBUG] match_card keys: {list(mc.keys())}")
-            print(f"  [DEBUG] match_card.competitiors present: {'competitiors' in mc}")
-        tp = first.get("teamParentData")
-        if tp:
-            print(f"  [DEBUG] teamParentData keys: {list(tp.keys()) if isinstance(tp, dict) else type(tp)}")
-        print(f"  [DEBUG] competitiors at top level: {'competitiors' in first}")
+        has_mc = mc is not None
+        has_comp = "competitiors" in first
+        print(f"  [DEBUG] first card keys: {list(first.keys())[:6]} | match_card: {has_mc} | competitiors: {has_comp}")
 
     records = []
     for team_tie in cards:
         if not isinstance(team_tie, dict):
             continue
 
-        # Some items wrap the match card under "match_card"; others are the card directly
         root_card = team_tie.get("match_card") or team_tie
 
         # Handle team events (nested individual matches)
