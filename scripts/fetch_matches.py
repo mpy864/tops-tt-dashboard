@@ -443,45 +443,55 @@ def ensure_players_in_db(supabase: Client, matches: list[dict]) -> None:
     if not missing_ids:
         return
 
-    print(f"  [Players] {len(missing_ids)} new players — fetching profiles...")
+    # Skip IDs outside the valid ITTF range (1M+ are team/event registration IDs)
+    fetchable = {i for i in missing_ids if i < 1_000_000}
+    skipped   = len(missing_ids) - len(fetchable)
+    print(f"  [Players] {len(missing_ids)} new players — fetching {len(fetchable)} profiles ({skipped} non-player IDs skipped)...")
 
     inserted = 0
-    for ittf_id in missing_ids:
+    not_found = 0
+    for ittf_id in fetchable:
         try:
             now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
             r = requests.get(PROFILE_URL,
                              params={"IttfId": ittf_id, "q": now},
                              headers=PROFILE_HEADERS, timeout=15)
-            if r.status_code == 200:
-                result = r.json().get("Result") or []
-                if result:
-                    p = result[0]
-                    dob = None
-                    dob_raw = p.get("DOB")
-                    if dob_raw:
-                        try:
-                            dob = datetime.strptime(dob_raw, "%m/%d/%Y %H:%M:%S").strftime("%Y-%m-%d")
-                        except:
-                            try: dob = dob_raw[:10]
-                            except: pass
+            if r.status_code != 200:
+                print(f"  [Players] HTTP {r.status_code} for id {ittf_id}")
+                time.sleep(0.5)
+                continue
+            result = r.json().get("Result") or []
+            if not result:
+                not_found += 1
+                time.sleep(0.5)
+                continue
+            p = result[0]
+            dob = None
+            dob_raw = p.get("DOB")
+            if dob_raw:
+                try:
+                    dob = datetime.strptime(dob_raw, "%m/%d/%Y %H:%M:%S").strftime("%Y-%m-%d")
+                except:
+                    try: dob = dob_raw[:10]
+                    except: pass
 
-                    supabase.table("wtt_players").upsert({
-                        "ittf_id":      ittf_id,
-                        "player_name":  p.get("PlayerName"),
-                        "country_code": p.get("CountryCode"),
-                        "country_name": p.get("CountryName"),
-                        "gender":       {"Men":"M","M":"M","Male":"M","Women":"W","Woman":"W","W":"W","F":"W","Female":"W"}.get(p.get("Gender") or "", None),
-                        "dob":          dob,
-                        "handedness":   p.get("Handedness"),
-                        "grip":         p.get("Grip"),
-                        "blade_type":   p.get("BladeType"),
-                    }, on_conflict="ittf_id").execute()
-                    inserted += 1
+            supabase.table("wtt_players").upsert({
+                "ittf_id":      ittf_id,
+                "player_name":  p.get("PlayerName"),
+                "country_code": p.get("CountryCode"),
+                "country_name": p.get("CountryName"),
+                "gender":       {"Men":"M","M":"M","Male":"M","Women":"W","Woman":"W","W":"W","F":"W","Female":"W"}.get(p.get("Gender") or "", None),
+                "dob":          dob,
+                "handedness":   p.get("Handedness"),
+                "grip":         p.get("Grip"),
+                "blade_type":   p.get("BladeType"),
+            }, on_conflict="ittf_id").execute()
+            inserted += 1
             time.sleep(0.5)
         except Exception as e:
             print(f"  [Players] Error fetching {ittf_id}: {e}")
 
-    print(f"  [Players] Inserted {inserted} new players.")
+    print(f"  [Players] Inserted {inserted} | Not found in API: {not_found} | Non-player IDs skipped: {skipped}")
 
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
