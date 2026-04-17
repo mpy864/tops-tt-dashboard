@@ -31,15 +31,41 @@ PROFILE_HEADERS = {
 GENDER_MAP = {"Men":"M","M":"M","Male":"M","Women":"W","Woman":"W","W":"W","F":"W","Female":"W"}
 
 
+SENIOR_EVENT_TYPES = {
+    "WTT Grand Smash", "WTT Champions", "WTT Star Contender", "WTT Contender",
+    "WTT Feeder", "Singles World Cup", "WTTC", "Continental Championships",
+    "Continental Cups", "Olympic Games", "World Mixed Team Championships",
+}
+
 def get_missing_ids(supabase: Client) -> list[int]:
-    """Return all player IDs in matches but not in wtt_players, valid range only."""
-    # Paginate through all matches to collect comp IDs
+    """
+    Return player IDs from SENIOR events that are missing from wtt_players.
+    Skips youth events — those players are not in the WTT senior profile API.
+    """
+    # Get senior event IDs
+    events = supabase.table("wtt_events").select("event_id,event_type,event_name").execute()
+    senior_event_ids = {
+        e["event_id"] for e in (events.data or [])
+        if e.get("event_type") in SENIOR_EVENT_TYPES
+        or (e.get("event_name") and "Youth" not in e["event_name"])
+        and e.get("event_type") not in (None,)
+    }
+    # Simpler: exclude events with "Youth" in name or type
+    senior_event_ids = {
+        e["event_id"] for e in (events.data or [])
+        if "Youth" not in (e.get("event_type") or "")
+        and "Youth" not in (e.get("event_name") or "")
+    }
+    print(f"[Backfill] {len(senior_event_ids)} senior events found")
+
+    # Collect player IDs from those events (paginated)
     all_ids = set()
     page_size = 1000
     offset = 0
     while True:
         rows = supabase.table("wtt_matches_singles") \
             .select("comp1_id,comp2_id") \
+            .in_("event_id", list(senior_event_ids)) \
             .range(offset, offset + page_size - 1) \
             .execute()
         if not rows.data:
@@ -51,19 +77,18 @@ def get_missing_ids(supabase: Client) -> list[int]:
             break
         offset += page_size
 
-    # Filter to valid ITTF ID range
+    # Valid ITTF ID range only
     all_ids = {i for i in all_ids if 1 <= i < 1_000_000}
 
-    # Remove IDs already in wtt_players (batch check)
+    # Remove IDs already in wtt_players
     existing = set()
-    id_list  = list(all_ids)
-    for i in range(0, len(id_list), 500):
-        chunk = id_list[i:i+500]
-        res   = supabase.table("wtt_players").select("ittf_id").in_("ittf_id", chunk).execute()
+    for i in range(0, len(list(all_ids)), 500):
+        chunk = list(all_ids)[i:i+500]
+        res = supabase.table("wtt_players").select("ittf_id").in_("ittf_id", chunk).execute()
         existing.update(r["ittf_id"] for r in (res.data or []))
 
     missing = sorted(all_ids - existing)
-    print(f"[Backfill] {len(all_ids)} unique IDs in matches → {len(missing)} missing from wtt_players")
+    print(f"[Backfill] {len(all_ids)} unique senior player IDs → {len(missing)} missing from wtt_players")
     return missing
 
 
@@ -125,7 +150,7 @@ def main():
 
         if i % 50 == 0:
             print(f"  Progress: {i}/{len(missing)} — inserted {inserted}, not found {not_found}")
-        time.sleep(0.4)
+        time.sleep(0.2)
 
     print(f"\n[Backfill] Done. Inserted: {inserted} | Not found in API: {not_found}")
 
