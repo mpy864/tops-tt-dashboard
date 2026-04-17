@@ -274,6 +274,19 @@ def fetch_event_matches(event_id: int) -> list[dict]:
         print(f"  [!] Empty response for event {event_id}. Type: {type(data)}, Keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
         return []
 
+    # Diagnostic: print structure of first item to understand API response shape
+    if cards and isinstance(cards[0], dict):
+        first = cards[0]
+        print(f"  [DEBUG] {len(cards)} cards. First item top-level keys: {list(first.keys())}")
+        mc = first.get("match_card")
+        if mc and isinstance(mc, dict):
+            print(f"  [DEBUG] match_card keys: {list(mc.keys())}")
+            print(f"  [DEBUG] match_card.competitiors present: {'competitiors' in mc}")
+        tp = first.get("teamParentData")
+        if tp:
+            print(f"  [DEBUG] teamParentData keys: {list(tp.keys()) if isinstance(tp, dict) else type(tp)}")
+        print(f"  [DEBUG] competitiors at top level: {'competitiors' in first}")
+
     records = []
     for team_tie in cards:
         if not isinstance(team_tie, dict):
