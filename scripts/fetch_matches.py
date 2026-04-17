@@ -376,8 +376,9 @@ def parse_match(m_card: dict, c1: dict, c2: dict,
         except ValueError:
             event_date = date_str[:10] if date_str else None
 
-    # Use documentCode as match_id (more reliable than matchId)
-    match_id = m_card.get("documentCode") or m_card.get("matchId") or m_card.get("id")
+    # Use event_id + documentCode as match_id — documentCode is reused across events
+    doc_code = m_card.get("documentCode") or m_card.get("matchId") or m_card.get("id")
+    match_id = f"{event_id}_{doc_code}" if doc_code else None
 
     return {
         "match_id":       match_id,
