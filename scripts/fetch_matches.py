@@ -275,9 +275,12 @@ def fetch_event_matches(event_id: int) -> list[dict]:
         return []
 
     records = []
-    for root_card in cards:
-        if not isinstance(root_card, dict):
+    for team_tie in cards:
+        if not isinstance(team_tie, dict):
             continue
+
+        # Some items wrap the match card under "match_card"; others are the card directly
+        root_card = team_tie.get("match_card") or team_tie
 
         # Handle team events (nested individual matches)
         team_parent        = root_card.get("teamParentData") or {}
