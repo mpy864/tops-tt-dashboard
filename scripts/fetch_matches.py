@@ -266,9 +266,12 @@ def fetch_event_matches(event_id: int) -> list[dict]:
         print(f"  [!] JSON parse error for event {event_id}: {e}")
         return []
 
-    cards = data.get("Result") or data.get("result") or (data if isinstance(data, list) else [])
+    if isinstance(data, list):
+        cards = data
+    else:
+        cards = data.get("Result") or data.get("result") or []
     if not cards:
-        print(f"  [!] No Result key in API response for event {event_id}. Keys: {list(data.keys()) if isinstance(data, dict) else type(data)}")
+        print(f"  [!] Empty response for event {event_id}. Type: {type(data)}, Keys: {list(data.keys()) if isinstance(data, dict) else 'N/A'}")
         return []
 
     records = []
