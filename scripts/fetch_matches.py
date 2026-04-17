@@ -274,21 +274,9 @@ def fetch_event_matches(event_id: int) -> list[dict]:
     else:
         cards = []
 
-    print(f"  [DEBUG] API returned {type(data).__name__} with {len(cards)} cards")
     if not cards:
         print(f"  [!] Empty response for event {event_id}")
         return []
-
-    # Log structure of first card to track API changes
-    if isinstance(cards[0], dict):
-        first = cards[0]
-        mc = first.get("match_card")
-        has_mc = mc is not None
-        has_comp = "competitiors" in first
-        mc_keys = list(mc.keys())[:6] if isinstance(mc, dict) else None
-        mc_doccode = mc.get("documentCode") if isinstance(mc, dict) else None
-        print(f"  [DEBUG] first card keys: {list(first.keys())[:6]} | match_card: {has_mc} | competitiors: {has_comp}")
-        print(f"  [DEBUG] match_card keys: {mc_keys} | match_card.documentCode: {mc_doccode!r}")
 
     records = []
     for team_tie in cards:
@@ -526,15 +514,6 @@ def main():
             print(f"  [!] No matches returned — skipping.")
             time.sleep(SLEEP_EVENT)
             continue
-
-        # Log sample match_ids to detect duplicates / null IDs
-        null_ids = [m for m in matches if not m.get("match_id")]
-        if null_ids:
-            print(f"  [!] {len(null_ids)} records have null match_id — will be skipped by DB")
-        sample_ids = [m.get("match_id") for m in matches[:5]]
-        print(f"  [DEBUG] sample match_ids: {sample_ids}")
-        unique_ids = len({m.get("match_id") for m in matches if m.get("match_id")})
-        print(f"  [DEBUG] unique non-null match_ids: {unique_ids}/{len(matches)}")
 
         # Upsert in batches of 500 (skip null match_id records)
         to_upsert = [m for m in matches if m.get("match_id")]
