@@ -428,10 +428,9 @@ export default function GroupDecisionTree({ gender }) {
     </div>
   )
   if (!matchups || matchups.length === 0) return (
-    <div style={{ background: '#fffbeb', border: '1px solid #fcd34d', borderRadius: 12, padding: 32, textAlign: 'center' }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>📊</div>
-      <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 8 }}>No group data yet</div>
-      <code style={{ display: 'block', marginTop: 8, background: '#fef3c7', borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#92400e' }}>
+    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 32, textAlign: 'center' }}>
+      <div style={{ fontWeight: 700, color: '#334155', marginBottom: 8 }}>No group data yet</div>
+      <code style={{ display: 'block', marginTop: 8, background: '#f1f5f9', borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#475569' }}>
         python scripts/wttc_simulate.py --gender {gender} --groups
       </code>
     </div>
@@ -467,8 +466,8 @@ export default function GroupDecisionTree({ gender }) {
   return (
     <div>
       {computedLabel && (
-        <div style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>
-          🕐 Last computed: {computedLabel} &nbsp;·&nbsp; Click any group card's view tabs to switch between Road to Gold / H2H Matrix / Group Finish
+        <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 16 }}>
+          Last computed: {computedLabel}
         </div>
       )}
 
@@ -498,9 +497,6 @@ export default function GroupDecisionTree({ gender }) {
         />
       ))}
 
-      <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8, textAlign: 'center' }}>
-        Road to Gold = cumulative probability at each stage · V8 MatchPredictor + 5,000 simulations
-      </p>
     </div>
   )
 }

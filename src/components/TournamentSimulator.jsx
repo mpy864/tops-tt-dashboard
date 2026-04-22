@@ -1,17 +1,15 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase.js'
 
-// Result ordering for display
-const RESULT_ORDER = ['Gold', 'Silver', 'Bronze', 'SF', 'QF', 'R16', 'R32', 'Prelim', 'Stage1b', 'Stage1a']
+const RESULT_ORDER = ['Gold', 'Silver', 'Bronze', 'QF', 'R16', 'R32', 'Prelim', 'Stage1b', 'Stage1a']
 
 const MEDAL_RESULTS = ['Gold', 'Silver', 'Bronze']
-const MAIN_DRAW_RESULTS = ['Gold', 'Silver', 'Bronze', 'SF', 'QF', 'R16', 'R32']
+const MAIN_DRAW_RESULTS = ['Gold', 'Silver', 'Bronze', 'QF', 'R16', 'R32']
 
 const RESULT_COLORS = {
   Gold:    '#f59e0b',
   Silver:  '#94a3b8',
   Bronze:  '#b45309',
-  SF:      '#6366f1',
   QF:      '#3b82f6',
   R16:     '#22c55e',
   R32:     '#64748b',
@@ -21,10 +19,9 @@ const RESULT_COLORS = {
 }
 
 const RESULT_LABELS = {
-  Gold:    '🥇 Gold',
-  Silver:  '🥈 Silver',
-  Bronze:  '🥉 Bronze',
-  SF:      'Semis',
+  Gold:    'Gold',
+  Silver:  'Silver',
+  Bronze:  'Bronze',
   QF:      'Quarter-Final',
   R16:     'Round of 16',
   R32:     'Round of 32',
@@ -65,7 +62,6 @@ function TeamDetailPanel({ team, probs, onClose }) {
   if (!probs) return null
   const flag = FLAG_CODES[team] || ''
   const pMedal = MEDAL_RESULTS.reduce((s, r) => s + (probs[r] || 0), 0)
-  const pSF = (probs['SF'] || 0) + pMedal + (probs['Bronze'] || 0)
   const pMD = MAIN_DRAW_RESULTS.reduce((s, r) => s + (probs[r] || 0), 0)
 
   return (
@@ -89,7 +85,6 @@ function TeamDetailPanel({ team, probs, onClose }) {
         <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
           {[
             { label: 'Medal', value: pMedal, color: '#f59e0b' },
-            { label: 'Semis+', value: pSF, color: '#6366f1' },
             { label: 'Main Draw', value: pMD, color: '#3b82f6' },
           ].map(({ label, value, color }) => (
             <div key={label} style={{
@@ -118,9 +113,6 @@ function TeamDetailPanel({ team, probs, onClose }) {
             </div>
           )
         })}
-        <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 16, textAlign: 'center' }}>
-          Click outside to close
-        </p>
       </div>
     </div>
   )
@@ -158,7 +150,7 @@ function TeamTable({ data, gender }) {
               color:      sortBy === col ? '#fff'    : '#475569',
               fontWeight: sortBy === col ? 700 : 400,
             }}>
-              {RESULT_LABELS[col]?.replace(/[🥇🥈🥉]/, '').trim() || col}
+              {RESULT_LABELS[col] || col}
             </button>
           ))}
         </div>
@@ -257,7 +249,6 @@ export default function TournamentSimulator({ gender = 'M' }) {
     setLoading(true)
     setError(null)
     try {
-      // Fetch latest run's timestamp
       const { data: rows, error: err } = await supabase
         .from('wttc_sim_results')
         .select('team, result, probability, runs, computed_at, model_version')
@@ -273,12 +264,10 @@ export default function TournamentSimulator({ gender = 'M' }) {
         return
       }
 
-      // Use only the most recent batch (same computed_at timestamp, within 1 min)
       const latest = rows[0].computed_at
       const cutoff = new Date(latest).getTime() - 60_000
       const latestRows = rows.filter(r => new Date(r.computed_at).getTime() >= cutoff)
 
-      // Group by team
       const byTeam = {}
       for (const row of latestRows) {
         if (!byTeam[row.team]) byTeam[row.team] = {}
@@ -308,9 +297,9 @@ export default function TournamentSimulator({ gender = 'M' }) {
           display: 'flex', gap: 16, flexWrap: 'wrap',
           marginBottom: 20, fontSize: 12, color: '#64748b',
         }}>
-          <span>📊 {meta.runs?.toLocaleString()} simulations</span>
-          <span>🤖 V{meta.model_version} model</span>
-          <span>🕐 {new Date(meta.computed_at).toLocaleString('en-IN', {
+          <span>{meta.runs?.toLocaleString()} simulations</span>
+          <span>V{meta.model_version} model</span>
+          <span>{new Date(meta.computed_at).toLocaleString('en-IN', {
             day: '2-digit', month: 'short', year: 'numeric',
             hour: '2-digit', minute: '2-digit',
           })}</span>
@@ -319,7 +308,7 @@ export default function TournamentSimulator({ gender = 'M' }) {
 
       {loading && (
         <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>
-          Loading simulation data…
+          Loading…
         </div>
       )}
 
@@ -334,19 +323,15 @@ export default function TournamentSimulator({ gender = 'M' }) {
 
       {noData && (
         <div style={{
-          background: '#fffbeb', border: '1px solid #fcd34d',
+          background: '#f8fafc', border: '1px solid #e2e8f0',
           borderRadius: 12, padding: 32, textAlign: 'center',
         }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>🏓</div>
-          <div style={{ fontWeight: 700, color: '#92400e', marginBottom: 8 }}>
+          <div style={{ fontWeight: 700, color: '#334155', marginBottom: 8 }}>
             No simulation data yet
           </div>
-          <div style={{ color: '#78350f', fontSize: 13, maxWidth: 420, margin: '0 auto' }}>
-            Run the simulator to generate predictions:
-          </div>
           <code style={{
-            display: 'block', marginTop: 12, background: '#fef3c7',
-            borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#92400e',
+            display: 'block', marginTop: 12, background: '#f1f5f9',
+            borderRadius: 8, padding: '10px 16px', fontSize: 12, color: '#475569',
           }}>
             python scripts/wttc_simulate.py --gender {gender} --runs 5000 --push
           </code>
@@ -356,10 +341,6 @@ export default function TournamentSimulator({ gender = 'M' }) {
       {!loading && data && data.length > 0 && (
         <TeamTable data={data} gender={gender} />
       )}
-
-      <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 20, textAlign: 'center' }}>
-        Click any row to see full probability breakdown • Tournament starts April 28, 2026
-      </p>
     </div>
   )
 }
