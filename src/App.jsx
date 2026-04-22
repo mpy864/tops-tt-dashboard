@@ -3,6 +3,8 @@ import { useAuth } from './context/AuthContext.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import DynamicOKRDashboard from './components/DynamicOKRDashboard.jsx'
 import H2HDashboard from './components/H2HDashboard.jsx'
+import LivePage from './pages/LivePage.jsx'
+import TournamentPage from './pages/TournamentPage.jsx'
 
 function ProtectedRoute({ children }) {
   const { session, loading } = useAuth()
@@ -46,6 +48,16 @@ export default function App() {
       <Route path="/h2h" element={
         <ProtectedRoute>
           <H2HDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/live" element={
+        <ProtectedRoute>
+          <LivePage />
+        </ProtectedRoute>
+      } />
+      <Route path="/tournament" element={
+        <ProtectedRoute>
+          <TournamentPage />
         </ProtectedRoute>
       } />
     </Routes>
