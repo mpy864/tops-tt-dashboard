@@ -6,6 +6,16 @@ const STAGE_1A = new Set(['G1', 'G2'])
 const POS_COLORS = ['#f59e0b', '#3b82f6', '#94a3b8', '#d1d5db']
 const POS_LABELS = ['1st', '2nd', '3rd', '4th']
 
+// Road to Gold stages (cumulative)
+const ROAD_STAGES = [
+  { key: 'advance', label: 'Advance' },
+  { key: 'r32',     label: 'R32' },
+  { key: 'r16',     label: 'R16' },
+  { key: 'qf',      label: 'QF' },
+  { key: 'medal',   label: 'Medal' },
+  { key: 'gold',    label: 'Gold' },
+]
+
 const FLAG_CODES = {
   IND: '🇮🇳', CHN: '🇨🇳', JPN: '🇯🇵', GER: '🇩🇪', KOR: '🇰🇷',
   FRA: '🇫🇷', SWE: '🇸🇪', TPE: '🇹🇼', ENG: '🏴󠁧󠁢󠁥󠁮󠁧󠁿', ROU: '🇷🇴',
@@ -33,7 +43,6 @@ function computeFinishingProbs(teams, matchupMap) {
     for (let j = i + 1; j < n; j++)
       pairs.push([i, j])
 
-  // pos[teamIdx][rank 0..n-1] = cumulative probability
   const pos = Array.from({ length: n }, () => new Array(n).fill(0))
   const total = 1 << pairs.length
 
@@ -48,10 +57,7 @@ function computeFinishingProbs(teams, matchupMap) {
       else { wins[j]++; prob *= (1 - pWin) }
     }
 
-    // Sort indices by wins desc
     const order = [...Array(n).keys()].sort((a, b) => wins[b] - wins[a])
-
-    // Split tied ranks evenly
     let start = 0
     while (start < n) {
       let end = start + 1
@@ -66,6 +72,39 @@ function computeFinishingProbs(teams, matchupMap) {
   return pos
 }
 
+// Compute cumulative "reach stage X" probabilities from sim result map
+// Each result = where the team was ELIMINATED
+function computeRoadProbs(resultMap, finishProbs, teamIdx, isStage1a) {
+  const g = resultMap?.Gold   || 0
+  const s = resultMap?.Silver || 0
+  const b = resultMap?.Bronze || 0
+  const qf  = resultMap?.QF  || 0
+  const r16 = resultMap?.R16 || 0
+  const r32 = resultMap?.R32 || 0
+
+  // P(1st or 2nd) — from analytical group computation
+  const pAdvance = isStage1a
+    ? 1.0
+    : (finishProbs[teamIdx]?.[0] || 0) + (finishProbs[teamIdx]?.[1] || 0)
+
+  return {
+    advance: pAdvance,
+    r32:     g + s + b + qf + r16 + r32,  // reached R32 bracket
+    r16:     g + s + b + qf + r16,
+    qf:      g + s + b + qf,
+    medal:   g + s + b,                    // Bronze = lost in SF = reached SF → medal
+    gold:    g,
+  }
+}
+
+function stageColor(p) {
+  if (p >= 0.6) return { bg: '#dcfce7', fg: '#166534', border: '#86efac' }
+  if (p >= 0.35) return { bg: '#dbeafe', fg: '#1e40af', border: '#93c5fd' }
+  if (p >= 0.10) return { bg: '#fef9c3', fg: '#854d0e', border: '#fde68a' }
+  if (p >= 0.01) return { bg: '#fee2e2', fg: '#991b1b', border: '#fca5a5' }
+  return { bg: '#f8fafc', fg: '#94a3b8', border: '#e2e8f0' }
+}
+
 function pWinBg(p) {
   if (p >= 0.65) return '#dcfce7'
   if (p >= 0.45) return '#fef9c3'
@@ -77,7 +116,15 @@ function pWinFg(p) {
   return '#991b1b'
 }
 
-function GroupCard({ groupId, teams, matchupRows, isStage1a }) {
+function fmt(p) {
+  const pct = Math.round(p * 100)
+  if (pct === 0) return '<1%'
+  return `${pct}%`
+}
+
+function GroupCard({ groupId, teams, matchupRows, simData, isStage1a }) {
+  const [view, setView] = useState('path') // 'path' | 'matrix' | 'finish'
+
   // Build matchup lookup: "TA_TB" → P(TA wins)
   const matchupMap = {}
   for (const m of matchupRows) {
@@ -87,103 +134,198 @@ function GroupCard({ groupId, teams, matchupRows, isStage1a }) {
 
   const finishProbs = computeFinishingProbs(teams, matchupMap)
 
-  // Sort display order by P(1st) descending
-  const rankOrder = [...Array(teams.length).keys()].sort(
-    (a, b) => finishProbs[b][0] - finishProbs[a][0]
-  )
+  // Sort display order by P(Gold) desc (from sim), fallback to P(1st) from analytical
+  const rankOrder = [...Array(teams.length).keys()].sort((a, b) => {
+    const ga = simData[teams[a]]?.Gold || 0
+    const gb = simData[teams[b]]?.Gold || 0
+    if (gb !== ga) return gb - ga
+    return (finishProbs[b][0] || 0) - (finishProbs[a][0] || 0)
+  })
 
   return (
     <div style={{
       background: '#fff', borderRadius: 16, padding: 24,
       border: '1px solid #e2e8f0', marginBottom: 20,
     }}>
-      {/* Group header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
-        <span style={{
-          background: isStage1a ? '#eff6ff' : '#f0fdf4',
-          color: isStage1a ? '#1d4ed8' : '#166534',
-          borderRadius: 8, padding: '4px 12px', fontWeight: 700, fontSize: 15,
-        }}>
-          Group {groupId.slice(1)}
-        </span>
-        <span style={{ fontSize: 12, color: '#64748b' }}>
-          {isStage1a
-            ? 'Stage 1a — All 4 advance to Main Draw (seeding only)'
-            : 'Stage 1b — 1st → R32 direct · 2nd → Runner-up pool · 3rd/4th → Eliminated'}
-        </span>
+      {/* Group header + view toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{
+            background: isStage1a ? '#eff6ff' : '#f0fdf4',
+            color: isStage1a ? '#1d4ed8' : '#166534',
+            borderRadius: 8, padding: '4px 12px', fontWeight: 700, fontSize: 15,
+          }}>
+            Group {groupId.slice(1)}
+          </span>
+          <span style={{ fontSize: 12, color: '#64748b' }}>
+            {isStage1a
+              ? 'Stage 1a — All 4 advance to Main Draw'
+              : 'Stage 1b — 1st → R32 · 2nd → Runner-up pool · 3rd/4th → Out'}
+          </span>
+        </div>
+        {/* View tabs */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          {[
+            { k: 'path',   l: 'Road to Gold' },
+            { k: 'matrix', l: 'H2H Matrix' },
+            { k: 'finish', l: 'Group Finish' },
+          ].map(({ k, l }) => (
+            <button key={k} onClick={() => setView(k)} style={{
+              padding: '4px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer',
+              border: 'none',
+              background: view === k ? '#6366f1' : '#f1f5f9',
+              color: view === k ? '#fff' : '#64748b',
+              fontWeight: view === k ? 700 : 400,
+            }}>{l}</button>
+          ))}
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
-
-        {/* Matchup Matrix */}
-        <div style={{ flex: '0 0 auto' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>
-            Head-to-Head Win %
-          </div>
-          <table style={{ borderCollapse: 'separate', borderSpacing: 3, fontSize: 12 }}>
-            <thead>
-              <tr>
-                <th style={{ width: 56, padding: '4px 6px' }}></th>
-                {teams.map(t => (
-                  <th key={t} style={{ padding: '4px 8px', color: '#334155', fontWeight: 700, textAlign: 'center', minWidth: 64, fontSize: 11 }}>
-                    {FLAG_CODES[t] || ''} {t}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {teams.map((rowTeam, ri) => (
-                <tr key={rowTeam}>
-                  <td style={{ padding: '4px 6px', fontWeight: 700, color: '#334155', fontSize: 11, whiteSpace: 'nowrap' }}>
-                    {FLAG_CODES[rowTeam] || ''} {rowTeam}
-                  </td>
-                  {teams.map((colTeam, ci) => {
-                    if (ri === ci) return (
-                      <td key={colTeam} style={{
-                        padding: '6px 10px', textAlign: 'center',
-                        background: '#f8fafc', color: '#cbd5e1',
-                        borderRadius: 6,
-                      }}>—</td>
-                    )
-                    const p = matchupMap[`${rowTeam}_${colTeam}`] ?? 0.5
-                    const pct = Math.round(p * 100)
-                    return (
-                      <td key={colTeam} style={{
-                        padding: '6px 10px', textAlign: 'center',
-                        background: pWinBg(p), color: pWinFg(p),
-                        fontWeight: 700, borderRadius: 6,
-                      }}>
-                        {pct}%
-                      </td>
-                    )
-                  })}
+      {/* ── ROAD TO GOLD (decision tree funnel) ── */}
+      {view === 'path' && (
+        <div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'separate', borderSpacing: '6px 4px', fontSize: 12, minWidth: 560 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '4px 8px', color: '#94a3b8', fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', width: 70 }}>Team</th>
+                  {ROAD_STAGES.map((st, si) => (
+                    <th key={st.key} style={{ textAlign: 'center', padding: '4px 8px', color: '#94a3b8', fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', minWidth: 72 }}>
+                      {si > 0 && <span style={{ color: '#cbd5e1', marginRight: 4 }}>→</span>}
+                      {st.label}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 6 }}>
-            Row team's P(win vs column team)
+              </thead>
+              <tbody>
+                {rankOrder.map(ti => {
+                  const team = teams[ti]
+                  const rm = simData[team] || {}
+                  const road = computeRoadProbs(rm, finishProbs, ti, isStage1a)
+
+                  return (
+                    <tr key={team}>
+                      <td style={{ padding: '4px 8px', fontWeight: 700, color: '#334155', whiteSpace: 'nowrap' }}>
+                        {FLAG_CODES[team] || ''} {team}
+                      </td>
+                      {ROAD_STAGES.map(st => {
+                        const p = road[st.key]
+                        const { bg, fg, border } = stageColor(p)
+                        const pct = Math.round(p * 100)
+                        return (
+                          <td key={st.key} style={{ padding: '4px 6px', textAlign: 'center' }}>
+                            <div style={{
+                              background: bg, color: fg,
+                              border: `1px solid ${border}`,
+                              borderRadius: 8, padding: '5px 6px',
+                              fontWeight: 700, fontSize: 12,
+                              minWidth: 52,
+                            }}>
+                              {pct >= 1 ? `${pct}%` : pct > 0 ? '<1%' : '—'}
+                            </div>
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Color legend */}
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', fontSize: 11, color: '#64748b' }}>
+            {[
+              { bg: '#dcfce7', fg: '#166534', label: '≥ 60%' },
+              { bg: '#dbeafe', fg: '#1e40af', label: '35–60%' },
+              { bg: '#fef9c3', fg: '#854d0e', label: '10–35%' },
+              { bg: '#fee2e2', fg: '#991b1b', label: '1–10%' },
+              { bg: '#f8fafc', fg: '#94a3b8', label: '< 1%' },
+            ].map(({ bg, fg, label }) => (
+              <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 16, height: 14, borderRadius: 3, background: bg, border: `1px solid ${fg}33`, display: 'inline-block' }} />
+                {label}
+              </span>
+            ))}
+          </div>
+
+          {/* Advancement rules */}
+          <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #f1f5f9' }}>
+            {isStage1a ? (
+              <div style={{ fontSize: 11, color: '#1e40af', background: '#eff6ff', borderRadius: 8, padding: '8px 12px' }}>
+                Stage 1a: All 4 teams advance. Group position determines bracket seeding.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', fontSize: 11 }}>
+                <span style={{ background: '#f0fdf4', color: '#166534', borderRadius: 6, padding: '4px 10px' }}>1st → R32 direct</span>
+                <span style={{ background: '#eff6ff', color: '#1e40af', borderRadius: 6, padding: '4px 10px' }}>2nd → runner-up pool (top 6 direct / bottom 8 play Prelim)</span>
+                <span style={{ background: '#fef2f2', color: '#991b1b', borderRadius: 6, padding: '4px 10px' }}>3rd / 4th → eliminated</span>
+              </div>
+            )}
           </div>
         </div>
+      )}
 
-        {/* Finishing position probabilities */}
-        <div style={{ flex: 1, minWidth: 240 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 10 }}>
-            Finishing Position Probabilities
+      {/* ── H2H MATCHUP MATRIX ── */}
+      {view === 'matrix' && (
+        <div>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'separate', borderSpacing: 3, fontSize: 12 }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 60, padding: '4px 6px' }}></th>
+                  {teams.map(t => (
+                    <th key={t} style={{ padding: '4px 10px', color: '#334155', fontWeight: 700, textAlign: 'center', minWidth: 72, fontSize: 11 }}>
+                      {FLAG_CODES[t] || ''} {t}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {teams.map((rowTeam, ri) => (
+                  <tr key={rowTeam}>
+                    <td style={{ padding: '4px 6px', fontWeight: 700, color: '#334155', fontSize: 11, whiteSpace: 'nowrap' }}>
+                      {FLAG_CODES[rowTeam] || ''} {rowTeam}
+                    </td>
+                    {teams.map((colTeam, ci) => {
+                      if (ri === ci) return (
+                        <td key={colTeam} style={{ padding: '6px 10px', textAlign: 'center', background: '#f8fafc', color: '#cbd5e1', borderRadius: 6 }}>—</td>
+                      )
+                      const p = matchupMap[`${rowTeam}_${colTeam}`] ?? 0.5
+                      const pct = Math.round(p * 100)
+                      return (
+                        <td key={colTeam} style={{
+                          padding: '6px 10px', textAlign: 'center',
+                          background: pWinBg(p), color: pWinFg(p),
+                          fontWeight: 700, borderRadius: 6,
+                        }}>
+                          {pct}%
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
+          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 8 }}>
+            Row team's P(win vs column team) · Green ≥ 65% · Amber 45–65% · Red &lt; 45%
+          </div>
+        </div>
+      )}
+
+      {/* ── GROUP FINISHING POSITION PROBABILITIES ── */}
+      {view === 'finish' && (
+        <div>
           {rankOrder.map(ti => {
             const team = teams[ti]
             const probs = finishProbs[ti]
             return (
               <div key={team} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                <div style={{ width: 52, fontWeight: 700, fontSize: 12, color: '#334155', textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ width: 56, fontWeight: 700, fontSize: 12, color: '#334155', textAlign: 'right', flexShrink: 0 }}>
                   {FLAG_CODES[team] || ''} {team}
                 </div>
-                {/* Stacked bar */}
-                <div style={{
-                  flex: 1, height: 18, borderRadius: 9, overflow: 'hidden',
-                  display: 'flex', background: '#f1f5f9', minWidth: 80,
-                }}>
+                <div style={{ flex: 1, height: 20, borderRadius: 10, overflow: 'hidden', display: 'flex', background: '#f1f5f9', minWidth: 80 }}>
                   {probs.map((p, ri) => {
                     const pct = p * 100
                     if (pct < 0.5) return null
@@ -195,14 +337,13 @@ function GroupCard({ groupId, teams, matchupRows, isStage1a }) {
                     )
                   })}
                 </div>
-                {/* Inline labels */}
-                <div style={{ display: 'flex', gap: 5, fontSize: 11, flexShrink: 0, flexWrap: 'wrap', maxWidth: 160 }}>
+                <div style={{ display: 'flex', gap: 6, fontSize: 11, flexShrink: 0, flexWrap: 'wrap', maxWidth: 180 }}>
                   {probs.map((p, ri) => {
                     const pct = Math.round(p * 100)
                     if (pct < 1) return null
                     return (
                       <span key={ri} style={{ color: POS_COLORS[ri], fontWeight: 600 }}>
-                        {POS_LABELS[ri]}&nbsp;{pct}%
+                        {POS_LABELS[ri]} {pct}%
                       </span>
                     )
                   })}
@@ -210,9 +351,7 @@ function GroupCard({ groupId, teams, matchupRows, isStage1a }) {
               </div>
             )
           })}
-
-          {/* Legend */}
-          <div style={{ display: 'flex', gap: 10, marginTop: 12, fontSize: 11, color: '#64748b' }}>
+          <div style={{ display: 'flex', gap: 10, marginTop: 10, fontSize: 11, color: '#64748b' }}>
             {POS_COLORS.map((c, i) => (
               <span key={i} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <span style={{ width: 10, height: 10, borderRadius: 2, background: c, display: 'inline-block' }} />
@@ -220,62 +359,59 @@ function GroupCard({ groupId, teams, matchupRows, isStage1a }) {
               </span>
             ))}
           </div>
-
-          {/* Advancement path */}
-          <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
-            {isStage1a ? (
-              <div style={{
-                background: '#eff6ff', border: '1px solid #93c5fd',
-                borderRadius: 8, padding: '8px 12px', fontSize: 12, color: '#1e40af',
-              }}>
-                All 4 teams advance. Finishing position determines bracket seeding in the Main Draw.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', gap: 6, fontSize: 11, alignItems: 'center' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', flexShrink: 0 }} />
-                  <strong>1st</strong> → Main Draw Round of 32 (direct)
-                </div>
-                <div style={{ display: 'flex', gap: 6, fontSize: 11, alignItems: 'center' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', flexShrink: 0 }} />
-                  <strong>2nd</strong> → Runner-up pool · 6 best advance direct, 8 go to Prelim Round
-                </div>
-                <div style={{ display: 'flex', gap: 6, fontSize: 11, alignItems: 'center' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
-                  <strong>3rd / 4th</strong> → Eliminated
-                </div>
-              </div>
-            )}
-          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }
 
 export default function GroupDecisionTree({ gender }) {
   const [matchups, setMatchups] = useState(null)
+  const [simResults, setSimResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [selectedGroup, setSelectedGroup] = useState('ALL')
 
   useEffect(() => {
     setSelectedGroup('ALL')
-    loadMatchups()
+    loadData()
   }, [gender])
 
-  async function loadMatchups() {
+  async function loadData() {
     setLoading(true)
     setError(null)
     try {
-      const { data, error: err } = await supabase
-        .from('wttc_lineup_results')
-        .select('team_a, team_b, p_win, group_id, computed_at')
-        .eq('gender', gender)
-        .order('group_id', { ascending: true })
-        .limit(2000)
-      if (err) throw err
-      setMatchups(data || [])
+      const [matchupRes, simRes] = await Promise.all([
+        supabase
+          .from('wttc_lineup_results')
+          .select('team_a, team_b, p_win, group_id, computed_at')
+          .eq('gender', gender)
+          .order('group_id', { ascending: true })
+          .limit(2000),
+        supabase
+          .from('wttc_sim_results')
+          .select('team, result, probability, computed_at')
+          .eq('gender', gender)
+          .order('computed_at', { ascending: false })
+          .limit(2000),
+      ])
+
+      if (matchupRes.error) throw matchupRes.error
+      if (simRes.error) throw simRes.error
+
+      setMatchups(matchupRes.data || [])
+
+      // Build simData[team][result] = probability from latest batch
+      const simRows = simRes.data || []
+      const latestSim = simRows[0]?.computed_at
+      const cutoff = latestSim ? new Date(latestSim).getTime() - 60_000 : 0
+      const latestSimRows = simRows.filter(r => new Date(r.computed_at).getTime() >= cutoff)
+      const byTeam = {}
+      for (const r of latestSimRows) {
+        if (!byTeam[r.team]) byTeam[r.team] = {}
+        byTeam[r.team][r.result] = r.probability
+      }
+      setSimResults(byTeam)
     } catch (e) {
       setError(e.message)
     } finally {
@@ -301,7 +437,7 @@ export default function GroupDecisionTree({ gender }) {
     </div>
   )
 
-  // Build group → matchup rows map
+  // Group matchups by group_id
   const byGroup = {}
   for (const m of matchups) {
     if (!byGroup[m.group_id]) byGroup[m.group_id] = []
@@ -330,10 +466,9 @@ export default function GroupDecisionTree({ gender }) {
 
   return (
     <div>
-      {/* Metadata */}
       {computedLabel && (
         <div style={{ fontSize: 12, color: '#64748b', marginBottom: 16 }}>
-          🕐 Last computed: {computedLabel}
+          🕐 Last computed: {computedLabel} &nbsp;·&nbsp; Click any group card's view tabs to switch between Road to Gold / H2H Matrix / Group Finish
         </div>
       )}
 
@@ -352,19 +487,19 @@ export default function GroupDecisionTree({ gender }) {
         ))}
       </div>
 
-      {/* Group cards */}
       {displayed.map(gid => (
         <GroupCard
           key={gid}
           groupId={gid}
           teams={groupTeams[gid]}
           matchupRows={byGroup[gid]}
+          simData={simResults || {}}
           isStage1a={STAGE_1A.has(gid)}
         />
       ))}
 
       <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 8, textAlign: 'center' }}>
-        Green ≥ 65% · Amber 45–65% · Red &lt; 45% · Probabilities via V8 MatchPredictor + exact DP
+        Road to Gold = cumulative probability at each stage · V8 MatchPredictor + 5,000 simulations
       </p>
     </div>
   )

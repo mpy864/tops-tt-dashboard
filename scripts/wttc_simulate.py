@@ -69,9 +69,20 @@ def rubber_probs_for_tie(team_a: str, team_b: str,
     """
     Compute 5 rubber win probabilities for team A vs B.
     Falls back to 0.5 for players not in the model.
+
+    Fallback logic:
+    - Both players known: use model prediction.
+    - Team A has roster, Team B has NO roster (completely unknown): 0.80 win prob for A.
+    - Team A has NO roster, Team B has roster:                       0.20 win prob for A.
+    - Both rosters empty (two unknown teams):                        0.50 (coin flip).
+    - One slot missing within a team that has a partial roster:      0.50.
+    This prevents teams with zero WTT match history (MDG, TAH, BRB, …) from
+    randomly beating known ranked sides in the simulation.
     """
     ids_a = rosters.get(team_a, [])
     ids_b = rosters.get(team_b, [])
+    a_has_data = len(ids_a) > 0
+    b_has_data = len(ids_b) > 0
 
     def pid(team_ids: list[int], slot: int) -> int | None:
         return team_ids[slot] if slot < len(team_ids) else None
@@ -82,8 +93,12 @@ def rubber_probs_for_tie(team_a: str, team_b: str,
         pb = pid(ids_b, slot_b)
         if pa and pb:
             probs.append(mp.predict(pa, pb))
+        elif a_has_data and not b_has_data:
+            probs.append(0.80)   # A has ranked players, B is completely unknown
+        elif not a_has_data and b_has_data:
+            probs.append(0.20)   # A is completely unknown, B has ranked players
         else:
-            probs.append(0.5)
+            probs.append(0.50)   # both unknown, or a partial slot gap within a known team
     return probs
 
 
@@ -346,6 +361,8 @@ def main():
                         help="Push results to Supabase wttc_sim_results table")
     parser.add_argument("--matchup", nargs=2, metavar=("TEAM_A", "TEAM_B"),
                         help="Show matchup breakdown for two teams (no simulation)")
+    parser.add_argument("--groups", action="store_true",
+                        help="Compute and push all group matchup probabilities to wttc_lineup_results")
     args = parser.parse_args()
 
     url = os.environ.get("SUPABASE_URL") or os.environ.get("VITE_SUPABASE_URL")
@@ -378,6 +395,35 @@ def main():
     p_resp = supabase.table("wtt_players") \
         .select("ittf_id,player_name,country_code").limit(10000).execute()
     pmap = {p["ittf_id"]: p for p in (p_resp.data or [])}
+
+    # ── Groups mode: compute all group matchup probabilities ─────────────
+    if args.groups:
+        print(f"\n[Groups] Computing matchup probabilities for all groups ({glabel})…")
+        all_groups = {**stage1a_groups, **stage1b_groups}
+        rows = []
+        for grp_id, members in sorted(all_groups.items()):
+            for i, ta in enumerate(members):
+                for tb in members[i + 1:]:
+                    info = compute_matchup(ta, tb, rosters, mp, pmap)
+                    rows.append({
+                        "gender":       gender,
+                        "team_a":       ta,
+                        "team_b":       tb,
+                        "lineup_a":     [pmap.get(pid, {}).get("player_name", str(pid))
+                                         for pid in rosters.get(ta, [])[:3]],
+                        "lineup_b":     [pmap.get(pid, {}).get("player_name", str(pid))
+                                         for pid in rosters.get(tb, [])[:3]],
+                        "p_win":        info["p_win"],
+                        "rubber_probs": info["rubber_details"],
+                        "group_id":     grp_id,
+                    })
+                    print(f"  {grp_id}: {ta} vs {tb}  →  P({ta}) = {info['p_win']*100:.1f}%")
+        # Clear previous and insert fresh
+        supabase.table("wttc_lineup_results").delete().eq("gender", gender).execute()
+        for i in range(0, len(rows), 100):
+            supabase.table("wttc_lineup_results").insert(rows[i:i + 100]).execute()
+        print(f"\n  Pushed {len(rows)} matchup rows to wttc_lineup_results ({gender})")
+        return
 
     # ── Matchup mode ──────────────────────────────────────────────────────
     if args.matchup:
