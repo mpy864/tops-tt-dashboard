@@ -134,7 +134,7 @@ function TeamTable({ data, gender }) {
   const sorted = [...data].sort((a, b) => (b.probs[sortBy] || 0) - (a.probs[sortBy] || 0))
   const filtered = sorted.filter(d => d.team.toLowerCase().includes(search.toLowerCase()))
 
-  const sortCols = ['Gold', 'Silver', 'Bronze', 'SF', 'QF', 'R16']
+  const sortCols = ['Gold', 'Silver', 'Bronze', 'QF', 'R16']
 
   return (
     <div>
