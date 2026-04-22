@@ -243,8 +243,7 @@ const td = {
   verticalAlign: 'middle',
 }
 
-export default function TournamentSimulator() {
-  const [gender, setGender] = useState('M')
+export default function TournamentSimulator({ gender = 'M' }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(false)
   const [meta, setMeta] = useState(null)
@@ -304,20 +303,6 @@ export default function TournamentSimulator() {
 
   return (
     <div>
-      {/* Gender tabs */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
-        {['M', 'W'].map(g => (
-          <button key={g} onClick={() => setGender(g)} style={{
-            padding: '8px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600,
-            cursor: 'pointer', border: 'none',
-            background: gender === g ? '#0f172a' : '#f1f5f9',
-            color:      gender === g ? '#fff'    : '#64748b',
-          }}>
-            {g === 'M' ? "Men's" : "Women's"}
-          </button>
-        ))}
-      </div>
-
       {meta && (
         <div style={{
           display: 'flex', gap: 16, flexWrap: 'wrap',
