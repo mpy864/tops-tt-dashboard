@@ -123,7 +123,14 @@ function TeamTable({ data, gender }) {
   const [sortBy, setSortBy] = useState('Gold')
   const [search, setSearch] = useState('')
 
-  const sorted = [...data].sort((a, b) => (b.probs[sortBy] || 0) - (a.probs[sortBy] || 0))
+  const TIEBREAK = ['Gold', 'Silver', 'Bronze', 'QF', 'R16', 'R32']
+  const sorted = [...data].sort((a, b) => {
+    for (const col of [sortBy, ...TIEBREAK.filter(c => c !== sortBy)]) {
+      const diff = (b.probs[col] || 0) - (a.probs[col] || 0)
+      if (diff !== 0) return diff
+    }
+    return 0
+  })
   const filtered = sorted.filter(d => d.team.toLowerCase().includes(search.toLowerCase()))
 
   const sortCols = ['Gold', 'Silver', 'Bronze', 'QF', 'R16']
