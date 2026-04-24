@@ -1,0 +1,45 @@
+name: Weekly Elite Benchmark Update
+
+on:
+  schedule:
+    # Every Monday at 01:00 UTC (06:30 IST) — after weekend tournaments settle
+    - cron: '0 1 * * 1'
+
+  # Allow manual trigger from GitHub Actions UI
+  workflow_dispatch:
+
+jobs:
+  compute-benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install supabase python-dateutil
+
+      - name: Compute Men's benchmarks
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/compute_player_benchmarks.py --gender M
+
+      - name: Compute Women's benchmarks
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/compute_player_benchmarks.py --gender W
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "Benchmark computation failed — check logs above"
+          exit 1
