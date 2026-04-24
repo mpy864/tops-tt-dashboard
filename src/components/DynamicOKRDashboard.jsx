@@ -840,6 +840,16 @@ const TABS = [
   { id: 'winloss',     label: 'Win/Loss'    },
   { id: 'performance', label: 'Performance' },
   { id: 'form',        label: 'Form'        },
+  { id: 'benchmark',   label: 'Benchmark'   },
+];
+
+const BM_METRICS = [
+  { key: 'win_rate',        label: 'Win Rate',       fmt: v => `${Math.round(v * 100)}%`, domain: [0.2, 1.0],  higher_better: true  },
+  { key: 'win_rate_top50',  label: 'vs Top 50',      fmt: v => `${Math.round(v * 100)}%`, domain: [0,   0.65], higher_better: true  },
+  { key: 'win_rate_top100', label: 'vs Top 100',     fmt: v => `${Math.round(v * 100)}%`, domain: [0,   0.9],  higher_better: true  },
+  { key: 'matches_played',  label: 'Matches Played', fmt: v => `${Math.round(v)}`,         domain: [0,   70],   higher_better: true  },
+  { key: 'avg_opp_rank',    label: 'Avg Opp Rank',   fmt: v => `#${Math.round(v)}`,        domain: [20,  250],  higher_better: false },
+  { key: 'elite_event_pct', label: 'Elite Events',   fmt: v => `${Math.round(v * 100)}%`, domain: [0,   0.9],  higher_better: true  },
 ];
 
 export default function DynamicOKRDashboard() {
@@ -876,6 +886,11 @@ export default function DynamicOKRDashboard() {
   const [openRankCtx, setOpenRankCtx]       = useState(null);
   const [openPerfSections, setOpenPerfSections] = useState(new Set());
   const [formShowAll, setFormShowAll]       = useState(false);
+  const [bmWindow, setBmWindow]             = useState(12);
+  const [bmProfile, setBmProfile]           = useState(null);
+  const [bmMyStats, setBmMyStats]           = useState(null);
+  const [bmElitePlayers, setBmElitePlayers] = useState([]);
+  const [bmLoading, setBmLoading]           = useState(false);
   const tabContentRef = useRef(null);
 
   const switchTab = (id) => {
@@ -1090,6 +1105,37 @@ export default function DynamicOKRDashboard() {
       finally { setFetching(false); }
     })();
   }, [selectedPlayer]);
+
+  useEffect(() => {
+    if (activeTab !== 'benchmark' || !selectedPlayer) return;
+    const playerGender = players.find(p => p.player_id === selectedPlayer)?.gender;
+    if (!playerGender) return;
+    let cancelled = false;
+    setBmLoading(true);
+    (async () => {
+      try {
+        const [profileRes, myRes, eliteRes] = await Promise.all([
+          supabase.from('elite_benchmark_profile')
+            .select('*').eq('gender', playerGender).eq('window_months', bmWindow),
+          supabase.from('player_benchmark_stats')
+            .select('*').eq('player_id', selectedPlayer).eq('window_months', bmWindow)
+            .maybeSingle(),
+          supabase.from('player_benchmark_stats')
+            .select('*').eq('gender', playerGender).eq('window_months', bmWindow)
+            .eq('is_elite', true).order('current_rank', { ascending: true }).limit(200),
+        ]);
+        if (cancelled) return;
+        const profileMap = {};
+        for (const row of (profileRes.data || [])) profileMap[row.metric] = row;
+        setBmProfile(Object.keys(profileMap).length > 0 ? profileMap : null);
+        setBmMyStats(myRes.data || null);
+        setBmElitePlayers(eliteRes.data || []);
+      } finally {
+        if (!cancelled) setBmLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [activeTab, selectedPlayer, bmWindow, players]);
 
   function buildMetrics(matches, rankings, events, allPlayers, oppRankMap,
                         playerId, domMatches, domOppProfiles, domOppRankMap) {
@@ -1935,6 +1981,191 @@ export default function DynamicOKRDashboard() {
                         showAll={formShowAll}
                         onToggleAll={() => setFormShowAll(o => !o)}
                       />
+                    </div>
+                  )}
+
+                  {activeTab === 'benchmark' && (
+                    <div className="slide p-5 space-y-5">
+                      {/* Header */}
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs text-slate-500 font-medium">SF+ players at major events</p>
+                          {bmProfile && (() => {
+                            const first = Object.values(bmProfile)[0];
+                            return first?.player_count
+                              ? <p className="text-[10px] text-slate-400 mt-0.5">{first.player_count} elite players</p>
+                              : null;
+                          })()}
+                        </div>
+                        <div className="flex items-center gap-0.5 bg-slate-100 rounded-lg p-0.5">
+                          {[6, 12, 18].map(w => (
+                            <button key={w} onClick={() => setBmWindow(w)}
+                              className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${
+                                bmWindow === w ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>
+                              {w}M
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {bmLoading && (
+                        <div className="text-center py-8 text-slate-400 text-sm">Loading benchmark…</div>
+                      )}
+
+                      {!bmLoading && !bmProfile && (
+                        <div className="text-center py-8 bg-slate-50 rounded-xl">
+                          <p className="text-sm text-slate-500 font-medium mb-3">No benchmark data yet</p>
+                          <code className="text-[11px] text-slate-400 bg-white border border-slate-200 px-3 py-2 rounded-lg block max-w-sm mx-auto">
+                            python scripts/compute_player_benchmarks.py --gender {players.find(p => p.player_id === selectedPlayer)?.gender === 'W' ? 'W' : 'M'}
+                          </code>
+                        </div>
+                      )}
+
+                      {!bmLoading && bmProfile && (
+                        <>
+                          {/* Metric bars */}
+                          <div className="space-y-4">
+                            {BM_METRICS.map(({ key, label, fmt, domain, higher_better }) => {
+                              const prof = bmProfile[key];
+                              if (!prof) return null;
+                              const myValRaw = bmMyStats?.[key];
+                              // Supabase returns NUMERIC as strings — parse to float for correct comparison
+                              const myVal = myValRaw != null ? parseFloat(myValRaw) : null;
+                              const p25f  = parseFloat(prof.p25);
+                              const p50f  = parseFloat(prof.p50);
+                              const p75f  = parseFloat(prof.p75);
+                              const [dMin, dMax] = domain;
+                              const toX = v => Math.max(0, Math.min(100, (parseFloat(v) - dMin) / (dMax - dMin) * 100));
+                              const p25x = toX(p25f);
+                              const p50x = toX(p50f);
+                              const p75x = toX(p75f);
+                              const myX  = myVal != null ? toX(myVal) : null;
+                              let myColor = '#94a3b8';
+                              if (myVal != null) {
+                                const good = higher_better ? myVal >= p50f : myVal <= p50f;
+                                const bad  = higher_better ? myVal <  p25f : myVal >  p75f;
+                                myColor = bad ? '#ef4444' : good ? '#10b981' : '#f59e0b';
+                              }
+                              return (
+                                <div key={key}>
+                                  <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-xs text-slate-600 font-medium w-28 shrink-0">{label}</span>
+                                    <div className="flex items-center gap-2 text-[11px]">
+                                      <span className="text-slate-400">{fmt(p25f)}</span>
+                                      <span className="font-semibold text-slate-700">{fmt(p50f)}</span>
+                                      <span className="text-slate-400">{fmt(p75f)}</span>
+                                      {myVal != null && (
+                                        <span className="font-bold ml-1" style={{ color: myColor }}>
+                                          · {fmt(myVal)}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="relative h-3 bg-slate-100 rounded-full">
+                                    {/* P25–P75 band */}
+                                    <div className="absolute top-0 h-full rounded-full bg-blue-200"
+                                      style={{ left: `${p25x}%`, width: `${p75x - p25x}%` }} />
+                                    {/* P50 line */}
+                                    <div className="absolute top-0 h-full w-px bg-blue-500"
+                                      style={{ left: `${p50x}%` }} />
+                                    {/* Player dot */}
+                                    {myX != null && (
+                                      <div
+                                        className="absolute top-0 w-3 h-3 rounded-full border-2 border-white -translate-x-1/2"
+                                        style={{ left: `${myX}%`, background: myColor, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
+                                      />
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Legend */}
+                          <div className="flex items-center flex-wrap gap-3 text-[10px] text-slate-400 pt-1 border-t border-slate-50">
+                            <div className="flex items-center gap-1">
+                              <div className="w-8 h-1.5 rounded bg-blue-200" />
+                              <span>P25–P75</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <div className="w-px h-3 bg-blue-500" />
+                              <span>Median</span>
+                            </div>
+                            {bmMyStats && (
+                              <>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                  <span>At / above median</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+                                  <span>P25–Median</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
+                                  <span>Below P25</span>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Elite players table */}
+                          {bmElitePlayers.length > 0 && (
+                            <div>
+                              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-3">
+                                Elite players — {bmWindow}-month window
+                              </p>
+                              <div className="overflow-x-auto">
+                                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                                  <thead>
+                                    <tr style={{ borderBottom: '1px solid #f1f5f9', color: '#94a3b8', textTransform: 'uppercase', fontSize: 10, letterSpacing: '0.05em' }}>
+                                      <th style={{ textAlign: 'left',  padding: '4px 8px 4px 0' }}>Player</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }}>Rank</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }}>Win%</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }}>vs T50</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }}>vs T100</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }}>M</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 0 4px 8px' }}>Avg Opp</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {bmElitePlayers.map((p, i) => {
+                                      const isMe = p.player_id === selectedPlayer;
+                                      return (
+                                        <tr key={p.player_id}
+                                          style={{ borderBottom: '1px solid #f8fafc', background: isMe ? '#eff6ff' : i % 2 === 0 ? '#fff' : '#fafbfc' }}>
+                                          <td style={{ padding: '5px 8px 5px 0', fontWeight: isMe ? 600 : 400, color: isMe ? '#1d4ed8' : '#334155' }}>
+                                            {p.player_name}
+                                            <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 4 }}>{p.country_code}</span>
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
+                                            {p.current_rank ? `#${p.current_rank}` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#334155', fontWeight: 500 }}>
+                                            {p.win_rate != null ? `${Math.round(p.win_rate * 100)}%` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#334155' }}>
+                                            {p.win_rate_top50 != null ? `${Math.round(p.win_rate_top50 * 100)}%` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#334155' }}>
+                                            {p.win_rate_top100 != null ? `${Math.round(p.win_rate_top100 * 100)}%` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
+                                            {p.matches_played ?? '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 0 5px 8px', color: '#64748b' }}>
+                                            {p.avg_opp_rank != null ? `#${Math.round(p.avg_opp_rank)}` : '—'}
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
 
