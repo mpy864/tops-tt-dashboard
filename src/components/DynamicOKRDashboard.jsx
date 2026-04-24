@@ -173,6 +173,7 @@ const Q_START = new Set([1, 4, 7, 10]);
 function buildRankChartData(rankingHistory, windowMonths) {
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - windowMonths);
+  cutoff.setHours(0, 0, 0, 0);
   const sorted = [...rankingHistory]
     .filter(r => new Date(r.ranking_date) >= cutoff)
     .sort((a, b) => new Date(a.ranking_date) - new Date(b.ranking_date));
@@ -199,6 +200,7 @@ function buildRankChartData(rankingHistory, windowMonths) {
 function computeWindowData(matchLedger, rankingHistory, windowMonths, playerCurrentRank) {
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - windowMonths);
+  cutoff.setHours(0, 0, 0, 0);
   const filtered = matchLedger.filter(m => m.rawDate >= cutoff);
   const wins   = filtered.filter(m => m.result === 'W');
   const losses = filtered.filter(m => m.result === 'L');
@@ -1254,6 +1256,7 @@ export default function DynamicOKRDashboard() {
   function computeLiveBenchmarkStats(wttLedger, rankingHistory, windowMonths, currentRank) {
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - windowMonths);
+    cutoff.setHours(0, 0, 0, 0);
     const filtered = wttLedger.filter(m => m.rawDate >= cutoff);
 
     const ELITE_TIERS = new Set(['1', '2', '3', '5']);
