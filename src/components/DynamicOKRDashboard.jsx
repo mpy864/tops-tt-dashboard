@@ -844,12 +844,51 @@ const TABS = [
 ];
 
 const BM_METRICS = [
-  { key: 'win_rate',        label: 'Win Rate',       fmt: v => `${Math.round(v * 100)}%`, domain: [0.2, 1.0],  higher_better: true  },
-  { key: 'win_rate_top50',  label: 'vs Top 50',      fmt: v => `${Math.round(v * 100)}%`, domain: [0,   0.65], higher_better: true  },
-  { key: 'win_rate_top100', label: 'vs Top 100',     fmt: v => `${Math.round(v * 100)}%`, domain: [0,   0.9],  higher_better: true  },
-  { key: 'matches_played',  label: 'Matches Played', fmt: v => `${Math.round(v)}`,         domain: [0,   70],   higher_better: true  },
-  { key: 'avg_opp_rank',    label: 'Avg Opp Rank',   fmt: v => `#${Math.round(v)}`,        domain: [20,  250],  higher_better: false },
-  { key: 'elite_event_pct', label: 'Elite Events',   fmt: v => `${Math.round(v * 100)}%`, domain: [0,   0.9],  higher_better: true  },
+  {
+    key: 'win_rate', label: 'Overall Win Rate', fmt: v => `${Math.round(v * 100)}%`,
+    domain: [0.2, 1.0], higher_better: true,
+    tooltip: 'Win % across all matches in the window — every event type included (Grand Smash, Champions, Contender, ITTF Opens, Continental, etc.)',
+  },
+  {
+    key: 'win_rate_top50', label: 'Win Rate vs Top 50', fmt: v => `${Math.round(v * 100)}%`,
+    domain: [0, 0.65], higher_better: true,
+    tooltip: 'Win % only against opponents ranked ≤50 at the time of the match (using historical ranking, not current rank).',
+  },
+  {
+    key: 'win_rate_top100', label: 'Win Rate vs Top 100', fmt: v => `${Math.round(v * 100)}%`,
+    domain: [0, 0.9], higher_better: true,
+    tooltip: 'Win % only against opponents ranked ≤100 at the time of the match. Includes all Top-50 matches.',
+  },
+  {
+    key: 'matches_played', label: 'Matches Played', fmt: v => `${Math.round(v)}`,
+    domain: [0, 70], higher_better: true,
+    tooltip: 'Total international matches played in the window. Reflects activity level and exposure to competition.',
+  },
+  {
+    key: 'avg_opp_rank', label: 'Avg Opp Rank (Schedule)', fmt: v => `#${Math.round(v)}`,
+    domain: [20, 250], higher_better: false,
+    tooltip: 'Average rank of all opponents faced (win or loss). Lower = tougher schedule. Measures the difficulty of competition a player seeks/faces.',
+  },
+  {
+    key: 'avg_opp_rank_beaten', label: 'Avg Opp Rank Beaten', fmt: v => `#${Math.round(v)}`,
+    domain: [20, 250], higher_better: false,
+    tooltip: 'Average rank of opponents the player actually beat. Lower = beating higher-ranked players. Measures quality of victories specifically.',
+  },
+  {
+    key: 'elite_event_pct', label: 'Elite Events %', fmt: v => `${Math.round(v * 100)}%`,
+    domain: [0, 0.9], higher_better: true,
+    tooltip: 'Fraction of matches played in top-tier events: Grand Smash, WTTC, Olympics, World Cup, WTT Finals, WTT Champions, Continental Championships & Cups.',
+  },
+  {
+    key: 'star_contender_pct', label: 'Star Contender %', fmt: v => `${Math.round(v * 100)}%`,
+    domain: [0, 0.6], higher_better: false,
+    tooltip: 'Fraction of matches in WTT Star Contender events. High % may indicate a player is competing below the elite circuit level.',
+  },
+  {
+    key: 'contender_pct', label: 'Contender %', fmt: v => `${Math.round(v * 100)}%`,
+    domain: [0, 0.5], higher_better: false,
+    tooltip: 'Fraction of matches in WTT Contender events. The lowest regular WTT level. High % = player is not regularly competing at top-level events.',
+  },
 ];
 
 export default function DynamicOKRDashboard() {
@@ -2025,7 +2064,7 @@ export default function DynamicOKRDashboard() {
                         <>
                           {/* Metric bars */}
                           <div className="space-y-4">
-                            {BM_METRICS.map(({ key, label, fmt, domain, higher_better }) => {
+                            {BM_METRICS.map(({ key, label, fmt, domain, higher_better, tooltip }) => {
                               const prof = bmProfile[key];
                               if (!prof) return null;
                               const myValRaw = bmMyStats?.[key];
@@ -2049,7 +2088,16 @@ export default function DynamicOKRDashboard() {
                               return (
                                 <div key={key}>
                                   <div className="flex items-center justify-between mb-1.5">
-                                    <span className="text-xs text-slate-600 font-medium w-28 shrink-0">{label}</span>
+                                    <div className="relative group flex items-center gap-1 w-44 shrink-0 cursor-help">
+                                      <span className="text-xs text-slate-600 font-medium leading-tight">{label}</span>
+                                      <span className="text-slate-300 text-[9px] leading-none select-none">ⓘ</span>
+                                      {tooltip && (
+                                        <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-64 bg-slate-800 text-white text-[11px] leading-relaxed rounded-lg px-3 py-2 shadow-xl pointer-events-none">
+                                          {tooltip}
+                                          <div className="absolute top-full left-4 border-4 border-transparent border-t-slate-800" />
+                                        </div>
+                                      )}
+                                    </div>
                                     <div className="flex items-center gap-2 text-[11px]">
                                       <span className="text-slate-400">{fmt(p25f)}</span>
                                       <span className="font-semibold text-slate-700">{fmt(p50f)}</span>
@@ -2082,30 +2130,33 @@ export default function DynamicOKRDashboard() {
                           </div>
 
                           {/* Legend */}
-                          <div className="flex items-center flex-wrap gap-3 text-[10px] text-slate-400 pt-1 border-t border-slate-50">
-                            <div className="flex items-center gap-1">
-                              <div className="w-8 h-1.5 rounded bg-blue-200" />
-                              <span>P25–P75</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <div className="w-px h-3 bg-blue-500" />
-                              <span>Median</span>
+                          <div className="bg-slate-50 rounded-xl px-4 py-3 space-y-2">
+                            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">How to read</p>
+                            <div className="flex items-start flex-wrap gap-x-5 gap-y-2 text-[11px] text-slate-500">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-8 h-2 rounded bg-blue-200 shrink-0" />
+                                <span><b className="text-slate-600">P25–P75 band</b> — middle 50% of elite players</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-px h-4 bg-blue-500 shrink-0" />
+                                <span><b className="text-slate-600">Median (P50)</b> — half of elites above, half below</span>
+                              </div>
                             </div>
                             {bmMyStats && (
-                              <>
-                                <div className="flex items-center gap-1">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                                  <span>At / above median</span>
+                              <div className="flex items-start flex-wrap gap-x-5 gap-y-1.5 text-[11px] text-slate-500 pt-1 border-t border-slate-200">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-3 h-3 rounded-full bg-emerald-500 shrink-0" />
+                                  <span><b className="text-slate-600">Green</b> — at or above median (top half of elites)</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-                                  <span>P25–Median</span>
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-3 h-3 rounded-full bg-amber-400 shrink-0" />
+                                  <span><b className="text-slate-600">Amber</b> — between P25 and median (above bottom quarter)</span>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                                  <span>Below P25</span>
+                                <div className="flex items-center gap-1.5">
+                                  <div className="w-3 h-3 rounded-full bg-red-400 shrink-0" />
+                                  <span><b className="text-slate-600">Red</b> — below P25 (bottom quarter of elites)</span>
                                 </div>
-                              </>
+                              </div>
                             )}
                           </div>
 
@@ -2125,7 +2176,11 @@ export default function DynamicOKRDashboard() {
                                       <th style={{ textAlign: 'right', padding: '4px 8px' }}>vs T50</th>
                                       <th style={{ textAlign: 'right', padding: '4px 8px' }}>vs T100</th>
                                       <th style={{ textAlign: 'right', padding: '4px 8px' }}>M</th>
-                                      <th style={{ textAlign: 'right', padding: '4px 0 4px 8px' }}>Avg Opp</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="Avg rank of all opponents faced (schedule difficulty)">Avg Opp</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="Avg rank of opponents beaten (quality of wins)">Beaten</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="% matches in Grand Smash / WTTC / Olympics / Champions / Continental">Elite%</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="% matches in WTT Star Contender">Star%</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 0 4px 8px' }} title="% matches in WTT Contender">Cont%</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2142,19 +2197,31 @@ export default function DynamicOKRDashboard() {
                                             {p.current_rank ? `#${p.current_rank}` : '—'}
                                           </td>
                                           <td style={{ textAlign: 'right', padding: '5px 8px', color: '#334155', fontWeight: 500 }}>
-                                            {p.win_rate != null ? `${Math.round(p.win_rate * 100)}%` : '—'}
+                                            {p.win_rate != null ? `${Math.round(parseFloat(p.win_rate) * 100)}%` : '—'}
                                           </td>
                                           <td style={{ textAlign: 'right', padding: '5px 8px', color: '#334155' }}>
-                                            {p.win_rate_top50 != null ? `${Math.round(p.win_rate_top50 * 100)}%` : '—'}
+                                            {p.win_rate_top50 != null ? `${Math.round(parseFloat(p.win_rate_top50) * 100)}%` : '—'}
                                           </td>
                                           <td style={{ textAlign: 'right', padding: '5px 8px', color: '#334155' }}>
-                                            {p.win_rate_top100 != null ? `${Math.round(p.win_rate_top100 * 100)}%` : '—'}
+                                            {p.win_rate_top100 != null ? `${Math.round(parseFloat(p.win_rate_top100) * 100)}%` : '—'}
                                           </td>
                                           <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
                                             {p.matches_played ?? '—'}
                                           </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
+                                            {p.avg_opp_rank != null ? `#${Math.round(parseFloat(p.avg_opp_rank))}` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
+                                            {p.avg_opp_rank_beaten != null ? `#${Math.round(parseFloat(p.avg_opp_rank_beaten))}` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
+                                            {p.elite_event_pct != null ? `${Math.round(parseFloat(p.elite_event_pct) * 100)}%` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
+                                            {p.star_contender_pct != null ? `${Math.round(parseFloat(p.star_contender_pct) * 100)}%` : '—'}
+                                          </td>
                                           <td style={{ textAlign: 'right', padding: '5px 0 5px 8px', color: '#64748b' }}>
-                                            {p.avg_opp_rank != null ? `#${Math.round(p.avg_opp_rank)}` : '—'}
+                                            {p.contender_pct != null ? `${Math.round(parseFloat(p.contender_pct) * 100)}%` : '—'}
                                           </td>
                                         </tr>
                                       );

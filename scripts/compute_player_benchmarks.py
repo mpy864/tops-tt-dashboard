@@ -38,8 +38,14 @@ MAJOR_NAME_FRAGMENTS = ['asian championship', 'asian cup']
 # Rounds that qualify as SF or beyond
 ELITE_ROUNDS = ['semifinal', 'semi-final', 'semi final', 'final']
 
-# Tiers 1–3 in wtt_events_graded count as "elite events"
-ELITE_TIERS = {'1', '2', '3'}
+# Tiers 1–5 count as "elite events" (Grand Smash/WTTC/Olympics + World Cup/Finals + Champions + Continental)
+ELITE_TIERS = {'1', '2', '3', '5'}
+
+# Tier 4 = WTT Star Contender
+STAR_CONTENDER_TIERS = {'4'}
+
+# Tier 6 = WTT Contender
+CONTENDER_TIERS = {'6'}
 
 # Windows in months → days
 WINDOWS = {6: 180, 12: 365, 18: 548}
@@ -279,7 +285,10 @@ def compute_stats(matches: list[dict], opp_rank_map: dict,
     top50_played = top50_wins = 0
     top100_played = top100_wins = 0
     opp_ranks = []
+    opp_ranks_beaten = []
     elite_count = 0
+    star_contender_count = 0
+    contender_count = 0
 
     for m in matches:
         mdate = m['event_date']
@@ -300,6 +309,8 @@ def compute_stats(matches: list[dict], opp_rank_map: dict,
 
         if opp_rank is not None:
             opp_ranks.append(opp_rank)
+            if won:
+                opp_ranks_beaten.append(opp_rank)
             if opp_rank <= 50:
                 top50_played += 1
                 if won:
@@ -312,16 +323,23 @@ def compute_stats(matches: list[dict], opp_rank_map: dict,
         tier = tier_map.get(m['event_id'], '')
         if tier in ELITE_TIERS:
             elite_count += 1
+        elif tier in STAR_CONTENDER_TIERS:
+            star_contender_count += 1
+        elif tier in CONTENDER_TIERS:
+            contender_count += 1
 
     return {
-        'matches_played':  played,
-        'win_rate':        round(wins / played, 4) if played else None,
-        'win_rate_top50':  round(top50_wins / top50_played, 4) if top50_played else None,
-        'win_rate_top100': round(top100_wins / top100_played, 4) if top100_played else None,
-        'matches_top50':   top50_played,
-        'matches_top100':  top100_played,
-        'avg_opp_rank':    round(statistics.mean(opp_ranks), 1) if opp_ranks else None,
-        'elite_event_pct': round(elite_count / played, 4) if played else None,
+        'matches_played':      played,
+        'win_rate':            round(wins / played, 4) if played else None,
+        'win_rate_top50':      round(top50_wins / top50_played, 4) if top50_played else None,
+        'win_rate_top100':     round(top100_wins / top100_played, 4) if top100_played else None,
+        'matches_top50':       top50_played,
+        'matches_top100':      top100_played,
+        'avg_opp_rank':        round(statistics.mean(opp_ranks), 1) if opp_ranks else None,
+        'avg_opp_rank_beaten': round(statistics.mean(opp_ranks_beaten), 1) if opp_ranks_beaten else None,
+        'elite_event_pct':     round(elite_count / played, 4) if played else None,
+        'star_contender_pct':  round(star_contender_count / played, 4) if played else None,
+        'contender_pct':       round(contender_count / played, 4) if played else None,
     }
 
 
@@ -436,8 +454,9 @@ def main():
 
     # Build elite_benchmark_profile
     METRICS = [
-        'matches_played', 'win_rate', 'win_rate_top50',
-        'win_rate_top100', 'avg_opp_rank', 'elite_event_pct',
+        'matches_played', 'win_rate', 'win_rate_top50', 'win_rate_top100',
+        'avg_opp_rank', 'avg_opp_rank_beaten',
+        'elite_event_pct', 'star_contender_pct', 'contender_pct',
     ]
     profile_rows = []
     for months in WINDOWS:
@@ -476,7 +495,8 @@ def main():
         def fmt(v):
             if v is None:
                 return '  —   '
-            if r['metric'] in ('win_rate', 'win_rate_top50', 'win_rate_top100', 'elite_event_pct'):
+            if r['metric'] in ('win_rate', 'win_rate_top50', 'win_rate_top100',
+                               'elite_event_pct', 'star_contender_pct', 'contender_pct'):
                 return f'{v*100:5.1f}%'
             return f'{v:6.1f}'
         print(f"  {r['metric']:<22} {r['window_months']:>5}M  "
