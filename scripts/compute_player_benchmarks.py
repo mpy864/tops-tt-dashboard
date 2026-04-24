@@ -17,6 +17,7 @@ import sys
 import argparse
 import statistics
 from datetime import date, timedelta
+from dateutil.relativedelta import relativedelta
 from collections import defaultdict
 from supabase import create_client, Client
 
@@ -47,8 +48,8 @@ STAR_CONTENDER_TIERS = {'4'}
 # Tier 6 = WTT Contender
 CONTENDER_TIERS = {'6'}
 
-# Windows in months → days
-WINDOWS = {6: 180, 12: 365, 18: 548}
+# Windows in calendar months (matches W/L tab's setMonth logic exactly)
+WINDOWS = {6: 6, 12: 12, 18: 18}
 
 TODAY = date.today()
 
@@ -92,6 +93,7 @@ def identify_elite_players(supabase: Client, gender: str) -> set[int]:
                 .select('comp1_id,comp2_id,round_phase') \
                 .in_('event_id', chunk) \
                 .not_.is_('result', 'null') \
+                .order('comp1_id').order('comp2_id') \
                 .range(page * size, page * size + size - 1) \
                 .execute()
             rows = q.data or []
@@ -190,10 +192,11 @@ def load_matches_for_players(supabase: Client, player_ids: list[int],
             page, size = 0, 1000
             while True:
                 q = supabase.table('wtt_matches_singles') \
-                    .select('comp1_id,comp2_id,result,event_id,event_date') \
+                    .select('match_id,comp1_id,comp2_id,result,event_id,event_date') \
                     .in_(id_field, chunk) \
                     .not_.is_('result', 'null') \
                     .gte('event_date', cutoff_date) \
+                    .order('match_id') \
                     .range(page * size, page * size + size - 1) \
                     .execute()
                 rows = q.data or []
@@ -237,7 +240,7 @@ def load_opp_rank_map(supabase: Client, opp_ids: list[int],
                 .select('player_id,ranking_date,rank') \
                 .in_('player_id', chunk) \
                 .gte('ranking_date', cutoff_date) \
-                .order('ranking_date') \
+                .order('player_id').order('ranking_date') \
                 .range(page * size, page * size + size - 1) \
                 .execute()
             rows = q.data or []
@@ -276,9 +279,11 @@ def load_event_tier_map(supabase: Client) -> dict[int, str]:
 # ─── Stats computation ────────────────────────────────────────────────────────
 
 def compute_stats(matches: list[dict], opp_rank_map: dict,
-                  tier_map: dict, window_days: int) -> dict:
+                  tier_map: dict, window_months: int,
+                  player_rank_hist: list[tuple] | None = None,
+                  current_rank: int | None = None) -> dict:
     """Compute fundamental stats for matches within the given window."""
-    cutoff = TODAY - timedelta(days=window_days)
+    cutoff = TODAY - relativedelta(months=window_months)
 
     played = 0
     wins = 0
@@ -289,6 +294,10 @@ def compute_stats(matches: list[dict], opp_rank_map: dict,
     elite_count = 0
     star_contender_count = 0
     contender_count = 0
+    all_event_ids = set()
+    elite_event_ids = set()
+    star_contender_event_ids = set()
+    contender_event_ids = set()
 
     for m in matches:
         mdate = m['event_date']
@@ -320,26 +329,55 @@ def compute_stats(matches: list[dict], opp_rank_map: dict,
                 if won:
                     top100_wins += 1
 
-        tier = tier_map.get(m['event_id'], '')
+        eid = m['event_id']
+        all_event_ids.add(eid)
+        tier = tier_map.get(eid, '')
         if tier in ELITE_TIERS:
             elite_count += 1
+            elite_event_ids.add(eid)
         elif tier in STAR_CONTENDER_TIERS:
             star_contender_count += 1
+            star_contender_event_ids.add(eid)
         elif tier in CONTENDER_TIERS:
             contender_count += 1
+            contender_event_ids.add(eid)
+
+    # ── Ranking metrics ──────────────────────────────────────────
+    avg_rank_in_window = None
+    rank_best = None
+    rank_change = None
+    if player_rank_hist:
+        cutoff_str = cutoff.isoformat()
+        window_ranks = [rank for (rdate, rank) in player_rank_hist if rdate >= cutoff_str]
+        if window_ranks:
+            avg_rank_in_window = round(statistics.mean(window_ranks), 1)
+            rank_best = min(window_ranks)
+        rank_at_start = get_rank_at_date(player_rank_hist, cutoff_str)
+        if rank_at_start and current_rank:
+            rank_change = rank_at_start - current_rank   # positive = improved
 
     return {
-        'matches_played':      played,
-        'win_rate':            round(wins / played, 4) if played else None,
-        'win_rate_top50':      round(top50_wins / top50_played, 4) if top50_played else None,
-        'win_rate_top100':     round(top100_wins / top100_played, 4) if top100_played else None,
-        'matches_top50':       top50_played,
-        'matches_top100':      top100_played,
-        'avg_opp_rank':        round(statistics.mean(opp_ranks), 1) if opp_ranks else None,
-        'avg_opp_rank_beaten': round(statistics.mean(opp_ranks_beaten), 1) if opp_ranks_beaten else None,
-        'elite_event_pct':     round(elite_count / played, 4) if played else None,
-        'star_contender_pct':  round(star_contender_count / played, 4) if played else None,
-        'contender_pct':       round(contender_count / played, 4) if played else None,
+        'matches_played':              played,
+        'win_rate':                    round(wins / played, 4) if played else None,
+        'win_rate_top50':              round(top50_wins / top50_played, 4) if top50_played else None,
+        'win_rate_top100':             round(top100_wins / top100_played, 4) if top100_played else None,
+        'matches_top50':               top50_played,
+        'matches_top100':              top100_played,
+        'avg_opp_rank':                round(statistics.mean(opp_ranks), 1) if opp_ranks else None,
+        'avg_opp_rank_beaten':         round(statistics.mean(opp_ranks_beaten), 1) if opp_ranks_beaten else None,
+        'elite_event_pct':             round(elite_count / played, 4) if played else None,
+        'star_contender_pct':          round(star_contender_count / played, 4) if played else None,
+        'contender_pct':               round(contender_count / played, 4) if played else None,
+        'elite_matches':               elite_count,
+        'star_contender_matches':      star_contender_count,
+        'contender_matches':           contender_count,
+        'total_competitions':          len(all_event_ids),
+        'elite_competitions':          len(elite_event_ids),
+        'star_contender_competitions': len(star_contender_event_ids),
+        'contender_competitions':      len(contender_event_ids),
+        'avg_rank_in_window':          avg_rank_in_window,
+        'rank_best':                   rank_best,
+        'rank_change':                 rank_change,
     }
 
 
@@ -400,16 +438,16 @@ def main():
                 })
     print(f'  → {len(players)} total players to analyse')
 
-    # Oldest cutoff = 18 months back
-    cutoff_18m = (TODAY - timedelta(days=548)).isoformat()
+    # Oldest cutoff = 18 calendar months back
+    cutoff_18m = (TODAY - relativedelta(months=18)).isoformat()
     player_ids = [p['player_id'] for p in players]
 
-    print('[3/6] Loading match history (18 months)…')
+    print('[3/7] Loading match history (18 months)…')
     by_player = load_matches_for_players(supabase, player_ids, cutoff_18m)
     total_matches = sum(len(v) for v in by_player.values())
     print(f'  → {total_matches} match records loaded')
 
-    print('[4/6] Loading opponent ranking history…')
+    print('[4/7] Loading opponent ranking history…')
     all_opp_ids = list({
         m['opp_id']
         for matches in by_player.values()
@@ -419,19 +457,27 @@ def main():
     opp_rank_map = load_opp_rank_map(supabase, all_opp_ids, cutoff_18m)
     print(f'  → Ranking history loaded for {len(opp_rank_map)} opponents')
 
-    print('[5/6] Loading event tier map…')
+    print('[5/7] Loading player ranking history…')
+    player_rank_map = load_opp_rank_map(supabase, player_ids, cutoff_18m)
+    print(f'  → Ranking history loaded for {len(player_rank_map)} players')
+
+    print('[6/7] Loading event tier map…')
     tier_map = load_event_tier_map(supabase)
     print(f'  → {len(tier_map)} events with tier data')
 
-    print('[6/6] Computing stats and upserting…')
+    print('[7/7] Computing stats and upserting…')
     stat_rows = []
     for player in players:
         pid = player['player_id']
         matches = by_player.get(pid, [])
         is_elite = pid in elite_ids
 
-        for months, days in WINDOWS.items():
-            stats = compute_stats(matches, opp_rank_map, tier_map, days)
+        for months in WINDOWS:
+            stats = compute_stats(
+                matches, opp_rank_map, tier_map, months,
+                player_rank_hist=player_rank_map.get(pid),
+                current_rank=player['current_rank'],
+            )
             row = {
                 'player_id':     pid,
                 'player_name':   player['player_name'],
@@ -454,9 +500,13 @@ def main():
 
     # Build elite_benchmark_profile
     METRICS = [
-        'matches_played', 'win_rate', 'win_rate_top50', 'win_rate_top100',
+        'matches_played', 'total_competitions',
+        'win_rate', 'win_rate_top50', 'win_rate_top100',
         'avg_opp_rank', 'avg_opp_rank_beaten',
-        'elite_event_pct', 'star_contender_pct', 'contender_pct',
+        'elite_event_pct', 'elite_matches', 'elite_competitions',
+        'star_contender_pct', 'star_contender_matches', 'star_contender_competitions',
+        'contender_pct', 'contender_matches', 'contender_competitions',
+        'avg_rank_in_window', 'rank_best', 'rank_change',
     ]
     profile_rows = []
     for months in WINDOWS:
@@ -498,6 +548,13 @@ def main():
             if r['metric'] in ('win_rate', 'win_rate_top50', 'win_rate_top100',
                                'elite_event_pct', 'star_contender_pct', 'contender_pct'):
                 return f'{v*100:5.1f}%'
+            if r['metric'] == 'rank_change':
+                return f'{v:+6.1f}'
+            if r['metric'] in ('total_competitions',
+                               'elite_matches', 'elite_competitions',
+                               'star_contender_matches', 'star_contender_competitions',
+                               'contender_matches', 'contender_competitions'):
+                return f'{int(v):6d}'
             return f'{v:6.1f}'
         print(f"  {r['metric']:<22} {r['window_months']:>5}M  "
               f"{fmt(r['p25'])}  {fmt(r['p50'])}  {fmt(r['p75'])}  "

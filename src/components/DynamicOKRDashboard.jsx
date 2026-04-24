@@ -844,50 +844,120 @@ const TABS = [
 ];
 
 const BM_METRICS = [
+  // ── Win Rates ──────────────────────────────────────────────────────────────
+  { group: 'Win Rates' },
   {
-    key: 'win_rate', label: 'Overall Win Rate', fmt: v => `${Math.round(v * 100)}%`,
+    key: 'win_rate', label: 'Overall', fmt: v => `${Math.round(v * 100)}%`,
     domain: [0.2, 1.0], higher_better: true,
     tooltip: 'Win % across all matches in the window — every event type included (Grand Smash, Champions, Contender, ITTF Opens, Continental, etc.)',
   },
   {
-    key: 'win_rate_top50', label: 'Win Rate vs Top 50', fmt: v => `${Math.round(v * 100)}%`,
+    key: 'win_rate_top50', label: 'vs Top 50', fmt: v => `${Math.round(v * 100)}%`,
     domain: [0, 0.65], higher_better: true,
     tooltip: 'Win % only against opponents ranked ≤50 at the time of the match (using historical ranking, not current rank).',
   },
   {
-    key: 'win_rate_top100', label: 'Win Rate vs Top 100', fmt: v => `${Math.round(v * 100)}%`,
+    key: 'win_rate_top100', label: 'vs Top 100', fmt: v => `${Math.round(v * 100)}%`,
     domain: [0, 0.9], higher_better: true,
     tooltip: 'Win % only against opponents ranked ≤100 at the time of the match. Includes all Top-50 matches.',
   },
+
+  // ── Activity ───────────────────────────────────────────────────────────────
+  { group: 'Activity (All Events)' },
   {
-    key: 'matches_played', label: 'Matches Played', fmt: v => `${Math.round(v)}`,
+    key: 'matches_played', label: 'Matches', fmt: v => `${Math.round(v)}`,
     domain: [0, 70], higher_better: true,
-    tooltip: 'Total international matches played in the window. Reflects activity level and exposure to competition.',
+    tooltip: 'Total international matches played in the window across all event tiers.',
   },
+  {
+    key: 'total_competitions', label: 'Competitions', fmt: v => `${Math.round(v)}`,
+    domain: [0, 30], higher_better: true,
+    tooltip: 'Total distinct tournaments entered in the window across all event tiers.',
+  },
+
+  // ── Opponent Quality ───────────────────────────────────────────────────────
+  { group: 'Opponent Quality' },
   {
     key: 'avg_opp_rank', label: 'Avg Opp Rank (Schedule)', fmt: v => `#${Math.round(v)}`,
     domain: [20, 250], higher_better: false,
-    tooltip: 'Average rank of all opponents faced (win or loss). Lower = tougher schedule. Measures the difficulty of competition a player seeks/faces.',
+    tooltip: 'Average rank of all opponents faced (win or loss). Lower = tougher schedule.',
   },
   {
     key: 'avg_opp_rank_beaten', label: 'Avg Opp Rank Beaten', fmt: v => `#${Math.round(v)}`,
     domain: [20, 250], higher_better: false,
-    tooltip: 'Average rank of opponents the player actually beat. Lower = beating higher-ranked players. Measures quality of victories specifically.',
+    tooltip: 'Average rank of opponents the player actually beat. Lower = beating higher-ranked players.',
   },
+
+  // ── Elite Events ───────────────────────────────────────────────────────────
+  { group: 'Elite Events (Grand Smash / WTTC / Olympics / Champions / Continental)' },
   {
-    key: 'elite_event_pct', label: 'Elite Events %', fmt: v => `${Math.round(v * 100)}%`,
+    key: 'elite_event_pct', label: 'Share of matches', fmt: v => `${Math.round(v * 100)}%`,
     domain: [0, 0.9], higher_better: true,
-    tooltip: 'Fraction of matches played in top-tier events: Grand Smash, WTTC, Olympics, World Cup, WTT Finals, WTT Champions, Continental Championships & Cups.',
+    tooltip: 'Fraction of all matches played that were in elite-tier events.',
   },
   {
-    key: 'star_contender_pct', label: 'Star Contender %', fmt: v => `${Math.round(v * 100)}%`,
+    key: 'elite_matches', label: 'Matches', fmt: v => `${Math.round(v)}`,
+    domain: [0, 50], higher_better: true,
+    tooltip: 'Number of individual matches played in elite-tier events.',
+  },
+  {
+    key: 'elite_competitions', label: 'Competitions', fmt: v => `${Math.round(v)}`,
+    domain: [0, 15], higher_better: true,
+    tooltip: 'Number of distinct elite-tier tournaments entered.',
+  },
+
+  // ── WTT Star Contender ────────────────────────────────────────────────────
+  { group: 'WTT Star Contender' },
+  {
+    key: 'star_contender_pct', label: 'Share of matches', fmt: v => `${Math.round(v * 100)}%`,
     domain: [0, 0.6], higher_better: false,
-    tooltip: 'Fraction of matches in WTT Star Contender events. High % may indicate a player is competing below the elite circuit level.',
+    tooltip: 'Fraction of matches in WTT Star Contender events.',
   },
   {
-    key: 'contender_pct', label: 'Contender %', fmt: v => `${Math.round(v * 100)}%`,
+    key: 'star_contender_matches', label: 'Matches', fmt: v => `${Math.round(v)}`,
+    domain: [0, 30], higher_better: false,
+    tooltip: 'Number of individual matches played in WTT Star Contender events.',
+  },
+  {
+    key: 'star_contender_competitions', label: 'Competitions', fmt: v => `${Math.round(v)}`,
+    domain: [0, 10], higher_better: false,
+    tooltip: 'Number of distinct WTT Star Contender tournaments entered.',
+  },
+
+  // ── WTT Contender ─────────────────────────────────────────────────────────
+  { group: 'WTT Contender' },
+  {
+    key: 'contender_pct', label: 'Share of matches', fmt: v => `${Math.round(v * 100)}%`,
     domain: [0, 0.5], higher_better: false,
-    tooltip: 'Fraction of matches in WTT Contender events. The lowest regular WTT level. High % = player is not regularly competing at top-level events.',
+    tooltip: 'Fraction of matches in WTT Contender events. High % = player is not regularly competing at top-level events.',
+  },
+  {
+    key: 'contender_matches', label: 'Matches', fmt: v => `${Math.round(v)}`,
+    domain: [0, 20], higher_better: false,
+    tooltip: 'Number of individual matches played in WTT Contender events.',
+  },
+  {
+    key: 'contender_competitions', label: 'Competitions', fmt: v => `${Math.round(v)}`,
+    domain: [0, 8], higher_better: false,
+    tooltip: 'Number of distinct WTT Contender tournaments entered.',
+  },
+
+  // ── Rankings ──────────────────────────────────────────────────────────────
+  { group: 'Rankings' },
+  {
+    key: 'avg_rank_in_window', label: 'Avg Rank', fmt: v => `#${Math.round(v)}`,
+    domain: [1, 200], higher_better: false,
+    tooltip: 'Average world ranking across all ranking weeks in the window. Captures consistency over the period.',
+  },
+  {
+    key: 'rank_best', label: 'Peak Rank', fmt: v => `#${Math.round(v)}`,
+    domain: [1, 150], higher_better: false,
+    tooltip: 'Best (lowest) ranking number achieved at any point in the window.',
+  },
+  {
+    key: 'rank_change', label: 'Rank Improvement', fmt: v => v >= 0 ? `+${Math.round(v)}` : `${Math.round(v)}`,
+    domain: [-30, 80], higher_better: true,
+    tooltip: 'Rank at start of window minus current rank. Positive = moved up. Negative = dropped.',
   },
 ];
 
@@ -1153,12 +1223,9 @@ export default function DynamicOKRDashboard() {
     setBmLoading(true);
     (async () => {
       try {
-        const [profileRes, myRes, eliteRes] = await Promise.all([
+        const [profileRes, eliteRes] = await Promise.all([
           supabase.from('elite_benchmark_profile')
             .select('*').eq('gender', playerGender).eq('window_months', bmWindow),
-          supabase.from('player_benchmark_stats')
-            .select('*').eq('player_id', selectedPlayer).eq('window_months', bmWindow)
-            .maybeSingle(),
           supabase.from('player_benchmark_stats')
             .select('*').eq('gender', playerGender).eq('window_months', bmWindow)
             .eq('is_elite', true).order('current_rank', { ascending: true }).limit(200),
@@ -1167,14 +1234,105 @@ export default function DynamicOKRDashboard() {
         const profileMap = {};
         for (const row of (profileRes.data || [])) profileMap[row.metric] = row;
         setBmProfile(Object.keys(profileMap).length > 0 ? profileMap : null);
-        setBmMyStats(myRes.data || null);
         setBmElitePlayers(eliteRes.data || []);
+        // Compute player's own stats live from already-loaded match data
+        if (playerMetrics) {
+          setBmMyStats(computeLiveBenchmarkStats(
+            playerMetrics.wttLedger,
+            playerMetrics.rankingHistory,
+            bmWindow,
+            playerMetrics.ranking,
+          ));
+        }
       } finally {
         if (!cancelled) setBmLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [activeTab, selectedPlayer, bmWindow, players]);
+  }, [activeTab, selectedPlayer, bmWindow, players, playerMetrics]);
+
+  function computeLiveBenchmarkStats(wttLedger, rankingHistory, windowMonths, currentRank) {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - windowMonths);
+    const filtered = wttLedger.filter(m => m.rawDate >= cutoff);
+
+    const ELITE_TIERS = new Set(['1', '2', '3', '5']);
+    const STAR_TIERS  = new Set(['4']);
+    const CONT_TIERS  = new Set(['6']);
+
+    const played = filtered.length;
+    if (played === 0) return null;
+
+    const wins = filtered.filter(m => m.result === 'W');
+
+    // Win rates
+    const win_rate = wins.length / played;
+    const vsTop50  = filtered.filter(m => m.opponentRank <= 50);
+    const vsTop100 = filtered.filter(m => m.opponentRank <= 100);
+    const win_rate_top50  = vsTop50.length  > 0 ? vsTop50.filter(m => m.result === 'W').length  / vsTop50.length  : null;
+    const win_rate_top100 = vsTop100.length > 0 ? vsTop100.filter(m => m.result === 'W').length / vsTop100.length : null;
+
+    // Opponent quality
+    const oppRanks       = filtered.filter(m => m.opponentRank < 999).map(m => m.opponentRank);
+    const oppRanksBeat   = wins.filter(m => m.opponentRank < 999).map(m => m.opponentRank);
+    const avg_opp_rank        = oppRanks.length   > 0 ? oppRanks.reduce((s, v) => s + v, 0)     / oppRanks.length   : null;
+    const avg_opp_rank_beaten = oppRanksBeat.length > 0 ? oppRanksBeat.reduce((s, v) => s + v, 0) / oppRanksBeat.length : null;
+
+    // Event tier breakdown
+    const eliteM  = filtered.filter(m => ELITE_TIERS.has(m.eventTierStr));
+    const starM   = filtered.filter(m => STAR_TIERS.has(m.eventTierStr));
+    const contM   = filtered.filter(m => CONT_TIERS.has(m.eventTierStr));
+    const elite_matches              = eliteM.length;
+    const star_contender_matches     = starM.length;
+    const contender_matches          = contM.length;
+    const elite_event_pct            = played > 0 ? elite_matches / played : null;
+    const star_contender_pct         = played > 0 ? star_contender_matches / played : null;
+    const contender_pct              = played > 0 ? contender_matches / played : null;
+
+    // Competitions (distinct tournament keys)
+    const allEvents   = new Set(filtered.map(m => m.tournamentKey));
+    const eliteEvents = new Set(eliteM.map(m => m.tournamentKey));
+    const starEvents  = new Set(starM.map(m => m.tournamentKey));
+    const contEvents  = new Set(contM.map(m => m.tournamentKey));
+    const total_competitions              = allEvents.size;
+    const elite_competitions             = eliteEvents.size;
+    const star_contender_competitions    = starEvents.size;
+    const contender_competitions         = contEvents.size;
+
+    // Rankings in window
+    const ranksInWindow = (rankingHistory || [])
+      .filter(r => new Date(r.ranking_date) >= cutoff)
+      .map(r => r.rank);
+    const avg_rank_in_window = ranksInWindow.length > 0
+      ? ranksInWindow.reduce((s, v) => s + v, 0) / ranksInWindow.length : null;
+    const rank_best = ranksInWindow.length > 0 ? Math.min(...ranksInWindow) : null;
+    const rankAtStart = (rankingHistory || []).find(r => new Date(r.ranking_date) <= cutoff)?.rank;
+    const rank_change = rankAtStart != null ? rankAtStart - currentRank : null;
+
+    return {
+      matches_played:            played,
+      total_competitions,
+      win_rate,
+      win_rate_top50,
+      win_rate_top100,
+      matches_top50:             vsTop50.length,
+      matches_top100:            vsTop100.length,
+      avg_opp_rank,
+      avg_opp_rank_beaten,
+      elite_event_pct,
+      elite_matches,
+      elite_competitions,
+      star_contender_pct,
+      star_contender_matches,
+      star_contender_competitions,
+      contender_pct,
+      contender_matches,
+      contender_competitions,
+      avg_rank_in_window,
+      rank_best,
+      rank_change,
+    };
+  }
 
   function buildMetrics(matches, rankings, events, allPlayers, oppRankMap,
                         playerId, domMatches, domOppProfiles, domOppRankMap) {
@@ -1207,6 +1365,7 @@ export default function DynamicOKRDashboard() {
         tournament: eventInfo?.event_name || 'Unknown',
         tournamentKey: String(m.event_id),
         eventTier: eventInfo?.tops_grade ?? null,
+        eventTierStr: eventInfo?.event_tier ?? null,
         round: m.round_phase || 'N/A',
         score: m.game_scores || 'N/A',
         result: won ? 'W' : 'L',
@@ -2063,8 +2222,20 @@ export default function DynamicOKRDashboard() {
                       {!bmLoading && bmProfile && (
                         <>
                           {/* Metric bars */}
-                          <div className="space-y-4">
-                            {BM_METRICS.map(({ key, label, fmt, domain, higher_better, tooltip }) => {
+                          <div className="space-y-3">
+                            {BM_METRICS.map((entry, idx) => {
+                              // Group divider
+                              if (entry.group) {
+                                return (
+                                  <div key={`g-${idx}`} className={`${idx > 0 ? 'pt-3 border-t border-slate-100' : ''}`}>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">
+                                      {entry.group}
+                                    </p>
+                                  </div>
+                                );
+                              }
+
+                              const { key, label, fmt, domain, higher_better, tooltip } = entry;
                               const prof = bmProfile[key];
                               if (!prof) return null;
                               const myValRaw = bmMyStats?.[key];
@@ -2089,7 +2260,7 @@ export default function DynamicOKRDashboard() {
                                 <div key={key}>
                                   <div className="flex items-center justify-between mb-1.5">
                                     <div className="relative group flex items-center gap-1 w-44 shrink-0 cursor-help">
-                                      <span className="text-xs text-slate-600 font-medium leading-tight">{label}</span>
+                                      <span className="text-xs text-slate-500 font-medium leading-tight">{label}</span>
                                       <span className="text-slate-300 text-[9px] leading-none select-none">ⓘ</span>
                                       {tooltip && (
                                         <div className="absolute bottom-full left-0 mb-2 hidden group-hover:block z-50 w-64 bg-slate-800 text-white text-[11px] leading-relaxed rounded-lg px-3 py-2 shadow-xl pointer-events-none">
@@ -2109,7 +2280,7 @@ export default function DynamicOKRDashboard() {
                                       )}
                                     </div>
                                   </div>
-                                  <div className="relative h-3 bg-slate-100 rounded-full">
+                                  <div className="relative h-2.5 bg-slate-100 rounded-full">
                                     {/* P25–P75 band */}
                                     <div className="absolute top-0 h-full rounded-full bg-blue-200"
                                       style={{ left: `${p25x}%`, width: `${p75x - p25x}%` }} />
@@ -2119,7 +2290,7 @@ export default function DynamicOKRDashboard() {
                                     {/* Player dot */}
                                     {myX != null && (
                                       <div
-                                        className="absolute top-0 w-3 h-3 rounded-full border-2 border-white -translate-x-1/2"
+                                        className="absolute top-0 w-2.5 h-2.5 rounded-full border-2 border-white -translate-x-1/2"
                                         style={{ left: `${myX}%`, background: myColor, boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}
                                       />
                                     )}
@@ -2175,12 +2346,16 @@ export default function DynamicOKRDashboard() {
                                       <th style={{ textAlign: 'right', padding: '4px 8px' }}>Win%</th>
                                       <th style={{ textAlign: 'right', padding: '4px 8px' }}>vs T50</th>
                                       <th style={{ textAlign: 'right', padding: '4px 8px' }}>vs T100</th>
-                                      <th style={{ textAlign: 'right', padding: '4px 8px' }}>M</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="Matches played">M</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="Total competitions (tournaments) entered">C</th>
                                       <th style={{ textAlign: 'right', padding: '4px 8px' }} title="Avg rank of all opponents faced (schedule difficulty)">Avg Opp</th>
                                       <th style={{ textAlign: 'right', padding: '4px 8px' }} title="Avg rank of opponents beaten (quality of wins)">Beaten</th>
-                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="% matches in Grand Smash / WTTC / Olympics / Champions / Continental">Elite%</th>
-                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="% matches in WTT Star Contender">Star%</th>
-                                      <th style={{ textAlign: 'right', padding: '4px 0 4px 8px' }} title="% matches in WTT Contender">Cont%</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 4px' }} title="Elite event matches / competitions">Elite (m/c)</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 4px' }} title="Star Contender matches / competitions">Star (m/c)</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 4px' }} title="Contender matches / competitions">Cont (m/c)</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="Average rank during the window">Avg Rank</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 8px' }} title="Best (lowest) rank in the window">Peak</th>
+                                      <th style={{ textAlign: 'right', padding: '4px 0 4px 8px' }} title="Rank improvement: positive = moved up">±Rank</th>
                                     </tr>
                                   </thead>
                                   <tbody>
@@ -2209,19 +2384,32 @@ export default function DynamicOKRDashboard() {
                                             {p.matches_played ?? '—'}
                                           </td>
                                           <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
+                                            {p.total_competitions ?? '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
                                             {p.avg_opp_rank != null ? `#${Math.round(parseFloat(p.avg_opp_rank))}` : '—'}
                                           </td>
                                           <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
                                             {p.avg_opp_rank_beaten != null ? `#${Math.round(parseFloat(p.avg_opp_rank_beaten))}` : '—'}
                                           </td>
-                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
-                                            {p.elite_event_pct != null ? `${Math.round(parseFloat(p.elite_event_pct) * 100)}%` : '—'}
+                                          <td style={{ textAlign: 'right', padding: '5px 4px', color: '#64748b' }}>
+                                            {p.elite_matches != null ? `${p.elite_matches}m / ${p.elite_competitions ?? 0}c` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 4px', color: '#64748b' }}>
+                                            {p.star_contender_matches != null ? `${p.star_contender_matches}m / ${p.star_contender_competitions ?? 0}c` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 4px', color: '#64748b' }}>
+                                            {p.contender_matches != null ? `${p.contender_matches}m / ${p.contender_competitions ?? 0}c` : '—'}
                                           </td>
                                           <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
-                                            {p.star_contender_pct != null ? `${Math.round(parseFloat(p.star_contender_pct) * 100)}%` : '—'}
+                                            {p.avg_rank_in_window != null ? `#${Math.round(parseFloat(p.avg_rank_in_window))}` : '—'}
                                           </td>
-                                          <td style={{ textAlign: 'right', padding: '5px 0 5px 8px', color: '#64748b' }}>
-                                            {p.contender_pct != null ? `${Math.round(parseFloat(p.contender_pct) * 100)}%` : '—'}
+                                          <td style={{ textAlign: 'right', padding: '5px 8px', color: '#64748b' }}>
+                                            {p.rank_best != null ? `#${p.rank_best}` : '—'}
+                                          </td>
+                                          <td style={{ textAlign: 'right', padding: '5px 0 5px 8px', fontWeight: 500,
+                                            color: p.rank_change > 0 ? '#10b981' : p.rank_change < 0 ? '#ef4444' : '#64748b' }}>
+                                            {p.rank_change != null ? (p.rank_change > 0 ? `+${p.rank_change}` : `${p.rank_change}`) : '—'}
                                           </td>
                                         </tr>
                                       );
